@@ -81,9 +81,8 @@ git push origin
 #    pi -p "$(cat /job/MERGE_JOB.md)" --session-dir "${LOG_DIR}" --continue
 #fi
 
-# 5. Create PR and auto-merge to main
+# 5. Create PR (auto-merge handled by GitHub Actions workflow)
 gh pr create --title "thepopebot: job ${JOB_ID}" --body "Automated job" --base main || true
-gh pr merge --squash || true
 
 # Cleanup
 kill $CHROME_PID 2>/dev/null || true

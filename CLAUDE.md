@@ -55,6 +55,7 @@ thepopebot is a **template repository** for creating custom autonomous AI agents
 ```
 /
 ├── .github/workflows/
+│   ├── auto-merge.yml       # Auto-merges job PRs (checks AUTO_MERGE + ALLOWED_PATHS)
 │   ├── run-job.yml          # Runs Docker agent when job/* branch created
 │   └── update-event-handler.yml          # Notifies event handler when PR opened
 ├── .pi/
@@ -211,7 +212,7 @@ The Dockerfile creates a container with:
 7. Run Pi with SOUL.md + job.md as prompt
 8. Save session log to `workspace/logs/{JOB_ID}/`
 9. Commit all changes with message `thepopebot: job {JOB_ID}`
-10. Create PR and auto-merge to main with `gh pr create` and `gh pr merge --squash`
+10. Create PR via `gh pr create` (auto-merge handled by `auto-merge.yml` workflow)
 
 ### Environment Variables (Docker Agent)
 
@@ -248,6 +249,24 @@ on:
 # Only runs if: PR head branch starts with "job/"
 ```
 
+### auto-merge.yml
+
+Triggers when a PR is opened from a `job/*` branch (runs in parallel with `update-event-handler.yml`). Checks two repository variables before merging:
+
+1. **`AUTO_MERGE`** — If set to `"false"`, skip merge entirely. Any other value (or unset) means auto-merge is enabled.
+2. **`ALLOWED_PATHS`** — Comma-separated path prefixes (e.g., `/workspace/,/operating_system/`). Only merges if all changed files fall within allowed prefixes. Defaults to `/` (all paths allowed) if unset.
+
+If both checks pass, merges the PR with `--squash`. If there's a merge conflict, the merge fails and the PR stays open for manual review.
+
+```yaml
+on:
+  pull_request:
+    types: [opened]
+    branches: [main]
+# Only runs if: PR head branch starts with "job/"
+# Uses automatic GITHUB_TOKEN — no additional secrets needed
+```
+
 ### GitHub Secrets Required
 
 | Secret | Description |
@@ -256,6 +275,15 @@ on:
 | `LLM_SECRETS` | Base64-encoded JSON with LLM-accessible credentials (optional) |
 | `GH_WEBHOOK_URL` | Event handler URL (e.g., `https://your-server.com`) |
 | `GH_WEBHOOK_TOKEN` | Token to authenticate with event handler |
+
+### GitHub Repository Variables
+
+Configure these in **Settings → Secrets and variables → Actions → Variables**:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `AUTO_MERGE` | Set to `false` to disable auto-merge of job PRs | Enabled (any value except `false`) |
+| `ALLOWED_PATHS` | Comma-separated path prefixes (e.g., `/workspace/logs/,/workspace/tmp/`). Use `/` for all paths. | `/` (all paths allowed) |
 
 ## How Credentials Work
 
