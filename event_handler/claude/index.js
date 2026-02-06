@@ -1,5 +1,5 @@
-const fs = require('fs');
 const path = require('path');
+const { render_md } = require('../utils/render-md');
 
 const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
 
@@ -22,18 +22,6 @@ function getApiKey() {
 }
 
 /**
- * Load system prompt from CHATBOT.md
- * @returns {string} System prompt
- */
-function getSystemPrompt() {
-  const promptPath = path.join(__dirname, '..', '..', 'operating_system', 'CHATBOT.md');
-  if (fs.existsSync(promptPath)) {
-    return fs.readFileSync(promptPath, 'utf8');
-  }
-  return 'You are a helpful assistant responding to Telegram messages. Keep responses concise (under 4096 characters).';
-}
-
-/**
  * Call Claude API
  * @param {Array} messages - Conversation messages
  * @param {Array} tools - Tool definitions
@@ -42,7 +30,7 @@ function getSystemPrompt() {
 async function callClaude(messages, tools) {
   const apiKey = getApiKey();
   const model = process.env.EVENT_HANDLER_MODEL || DEFAULT_MODEL;
-  const systemPrompt = getSystemPrompt();
+  const systemPrompt = render_md(path.join(__dirname, '..', '..', 'operating_system', 'CHATBOT.md'));
 
   // Combine user tools with web search
   const allTools = [WEB_SEARCH_TOOL, ...tools];
@@ -151,5 +139,4 @@ async function chat(userMessage, history, toolDefinitions, toolExecutors) {
 module.exports = {
   chat,
   getApiKey,
-  getSystemPrompt,
 };

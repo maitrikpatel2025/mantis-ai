@@ -64,6 +64,7 @@ thepopebot is a **template repository** for creating custom autonomous AI agents
 ├── event_handler/              # Event Handler orchestration layer
 │   ├── server.js               # Express HTTP server (webhooks, Telegram, GitHub)
 │   ├── cron.js                 # Cron scheduler (loads CRONS.json)
+│   ├── cron/                   # Working directory for command-type cron jobs
 │   ├── claude/
 │   │   ├── index.js            # Claude API integration for chat
 │   │   ├── tools.js            # Tool definitions (create_job, get_job_status)
@@ -73,7 +74,6 @@ thepopebot is a **template repository** for creating custom autonomous AI agents
 │       ├── github.js           # GitHub REST API helper + job status
 │       └── telegram.js         # Telegram bot integration
 ├── operating_system/
-│   ├── AWARENESS.md           # Agent's environment
 │   ├── SOUL.md                 # Agent identity and personality
 │   ├── CHATBOT.md              # Telegram chat system prompt
 │   ├── JOB_SUMMARY.md          # Job completion summary prompt
@@ -94,7 +94,6 @@ thepopebot is a **template repository** for creating custom autonomous AI agents
 
 | File | Purpose |
 |------|---------|
-| `operating_system/AWARENESS.md` | Agent's environment (where things are, what exists) |
 | `operating_system/SOUL.md` | Agent personality and identity |
 | `operating_system/CHATBOT.md` | System prompt for Telegram chat |
 | `operating_system/JOB_SUMMARY.md` | Prompt for summarizing completed jobs |
@@ -123,6 +122,60 @@ The Event Handler is a Node.js Express server that provides orchestration capabi
 - **cron.js** - Loads CRONS.json and schedules jobs using node-cron
 - **claude/** - Claude API integration for Telegram chat with tool use
 - **tools/** - Job creation, GitHub API, and Telegram utilities
+
+### Cron Jobs
+
+Cron jobs are defined in `operating_system/CRONS.json` and loaded by `event_handler/cron.js` at startup using `node-cron`. There are two types:
+
+#### Choosing Between `agent` and `command`
+
+| | `agent` | `command` |
+|---|---------|-----------|
+| **Uses LLM** | Yes — spins up Pi in a Docker container | No — runs a shell command directly |
+| **Thinking** | Can reason, make decisions, write code | No thinking, just executes |
+| **Runtime** | Minutes to hours (full agent lifecycle) | Milliseconds to seconds |
+| **Cost** | LLM API calls + GitHub Actions minutes | Free (runs on event handler) |
+
+If the task needs to *think*, use `agent`. If it just needs to *do*, use `command`.
+
+#### Type: `agent` (default)
+
+Creates a full Docker Agent job via `createJob()`. This pushes a `job/*` branch to GitHub, which triggers `run-job.yml` to spin up the Docker container with Pi. The `job` string is passed directly as-is to the LLM as its task prompt (written to `workspace/job.md` on the job branch).
+
+```json
+{
+  "name": "heartbeat",
+  "schedule": "*/30 * * * *",
+  "type": "agent",
+  "job": "Read the file at operating_system/HEARTBEAT.md and complete the tasks described there.",
+  "enabled": true
+}
+```
+
+#### Type: `command`
+
+Runs a shell command directly on the event handler server. No Docker container, no GitHub branch, no LLM. Commands execute with `event_handler/cron/` as the working directory — put any scripts or files needed by cron commands there.
+
+```json
+{
+  "name": "ping",
+  "schedule": "*/1 * * * *",
+  "type": "command",
+  "command": "echo \"pong!\"",
+  "enabled": true
+}
+```
+
+#### Common Fields
+
+| Field | Description | Required |
+|-------|-------------|----------|
+| `name` | Display name for logging | Yes |
+| `schedule` | Cron expression (e.g., `*/30 * * * *`) | Yes |
+| `type` | `agent` (default) or `command` | No |
+| `job` | Task description for agent type | For `agent` |
+| `command` | Shell command for command type | For `command` |
+| `enabled` | Set to `false` to disable without deleting | No |
 
 ### Environment Variables (Event Handler)
 
@@ -155,7 +208,7 @@ The Dockerfile creates a container with:
 4. Decode `LLM_SECRETS` from base64, parse JSON, export each key as env var (LLM can access these)
 5. Configure Git credentials via `gh auth setup-git` (uses GH_TOKEN from SECRETS)
 6. Clone repository branch to `/job`
-7. Run Pi with AWARENESS.md + SOUL.md + job.md as prompt
+7. Run Pi with SOUL.md + job.md as prompt
 8. Save session log to `workspace/logs/{JOB_ID}/`
 9. Commit all changes with message `thepopebot: job {JOB_ID}`
 10. Create PR and auto-merge to main with `gh pr create` and `gh pr merge --squash`
@@ -222,8 +275,7 @@ For credentials the LLM needs access to (browser logins, skill API keys), use `L
 To create your own agent:
 
 1. **GitHub Secrets** - Set `SECRETS` and optionally `LLM_SECRETS` with your API keys
-2. **operating_system/AWARENESS.md** - Define agent's environment awareness
-3. **operating_system/SOUL.md** - Customize personality and identity
+2. **operating_system/SOUL.md** - Customize personality and identity
 4. **operating_system/CHATBOT.md** - Configure Telegram chat behavior
 5. **operating_system/CRONS.json** - Define scheduled jobs
 6. **workspace/job.md** - Define the task to execute
@@ -233,7 +285,6 @@ To create your own agent:
 
 These files in `operating_system/` define the agent's character and behavior:
 
-- **AWARENESS.md** - Environment facts (where things are, what exists)
 - **SOUL.md** - Personality, identity, and values (who the agent is)
 - **CHATBOT.md** - System prompt for Telegram chat
 - **JOB_SUMMARY.md** - Prompt for summarizing completed jobs
@@ -243,3 +294,15 @@ These files in `operating_system/` define the agent's character and behavior:
 ## Session Logs
 
 Each job creates a session log at `workspace/logs/{JOB_ID}/`. This directory contains the full conversation history and can be resumed for follow-up tasks via the `--session-dir` flag.
+
+## Markdown File Includes
+
+Markdown files in `operating_system/` support a `{{filepath}}` include syntax, powered by `event_handler/utils/render-md.js`.
+
+- **Syntax**: `{{ filepath }}` — double curly braces around a file path
+- **Path resolution**: Paths resolve relative to the repository root
+- **Recursive**: Included files can themselves contain includes
+- **Circular protection**: If a circular include is detected, it is skipped and a warning is logged
+- **Missing files**: If a referenced file doesn't exist, the pattern is left as-is
+
+Currently used by the Event Handler to load CHATBOT.md (which includes CLAUDE.md) as the Claude system prompt.

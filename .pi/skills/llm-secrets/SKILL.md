@@ -3,14 +3,10 @@ name: llm-secrets
 description: List available LLM-accessible credentials. Use when you need API keys, passwords, or other secrets that have been made available to you.
 ---
 
-# LLM Secrets
-
-List credentials that have been configured for your use.
-
-## List Available Secrets
+# List Available Secrets
 
 ```bash
-/job/.pi/skills/llm-secrets.js
+/job/.pi/skills/llm-secrets/llm-secrets.js
 ```
 
 Shows the names of available secret keys (not values). Output example:

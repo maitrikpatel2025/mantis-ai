@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const execAsync = promisify(exec);
 const { createJob } = require('./tools/create-job');
+const CRON_DIR = path.join(__dirname, 'cron');
 
 /**
  * Load and schedule crons from CRONS.json
@@ -37,7 +38,7 @@ function loadCrons() {
     const task = cron.schedule(schedule, async () => {
       try {
         if (type === 'command') {
-          const { stdout, stderr } = await execAsync(command);
+          const { stdout, stderr } = await execAsync(command, { cwd: CRON_DIR });
           const output = (stdout || stderr || '').trim();
           console.log(`[CRON] ${name}: ${output || 'ran'}`);
         } else {

@@ -11,17 +11,21 @@ export function generateVerificationCode() {
  * Register a Telegram webhook
  */
 export async function setTelegramWebhook(botToken, webhookUrl, secretToken = null) {
-  const params = new URLSearchParams({
-    url: webhookUrl,
-  });
+  // Delete first — Telegram ignores secret_token changes if the URL is unchanged
+  await deleteTelegramWebhook(botToken);
 
+  const body = { url: webhookUrl };
   if (secretToken) {
-    params.append('secret_token', secretToken);
+    body.secret_token = secretToken;
   }
 
   const response = await fetch(
-    `https://api.telegram.org/bot${botToken}/setWebhook?${params.toString()}`,
-    { method: 'POST' }
+    `https://api.telegram.org/bot${botToken}/setWebhook`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }
   );
 
   const result = await response.json();

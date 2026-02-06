@@ -29,23 +29,14 @@ export async function runVerificationFlow(verificationCode) {
 }
 
 /**
- * Verify the server restart and bot functionality
+ * Wait for server to pick up .env changes and verify it's running
  * @param {string} ngrokUrl - The ngrok URL
  * @param {string} apiKey - The API key for authentication
  * @returns {Promise<boolean>} - True if verified successfully
  */
 export async function verifyRestart(ngrokUrl, apiKey) {
-  console.log(chalk.bold.yellow('\n  Restart Required\n'));
-  console.log(chalk.dim('  The event handler must be restarted to apply the chat ID restriction.\n'));
-  console.log(chalk.cyan('  1. Stop the event handler (Ctrl+C)'));
-  console.log(chalk.cyan('  2. Start it again: ') + chalk.bold('npm start'));
-  console.log();
-
-  await inquirer.prompt([{
-    type: 'input',
-    name: 'confirm',
-    message: 'Press Enter after restarting the server...',
-  }]);
+  console.log(chalk.dim('\n  Waiting for server to pick up changes...\n'));
+  await new Promise(resolve => setTimeout(resolve, 3000));
 
   // Verify server is up
   try {
@@ -56,7 +47,7 @@ export async function verifyRestart(ngrokUrl, apiKey) {
     });
 
     if (!response.ok) {
-      console.log(chalk.red('  ✗ Could not reach server. Make sure it\'s running.\n'));
+      console.log(chalk.red('  ✗ Could not reach server.\n'));
       return false;
     }
 
@@ -71,18 +62,5 @@ export async function verifyRestart(ngrokUrl, apiKey) {
   }
 
   console.log(chalk.green('  ✓ Server is running\n'));
-
-  // Verify bot responds
-  console.log(chalk.dim('  Now verify the bot works:\n'));
-  console.log(chalk.cyan('  Send any message to your bot (e.g. "hello")'));
-  console.log(chalk.dim('  The bot should respond. If it doesn\'t, check your chat ID.\n'));
-
-  const { confirmed } = await inquirer.prompt([{
-    type: 'confirm',
-    name: 'confirmed',
-    message: 'Did the bot respond?',
-    default: true
-  }]);
-
-  return confirmed;
+  return true;
 }

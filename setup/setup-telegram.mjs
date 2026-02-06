@@ -12,7 +12,7 @@ import { setSecrets } from './lib/github.mjs';
 import { setTelegramWebhook, validateBotToken, generateVerificationCode } from './lib/telegram.mjs';
 import { confirm, generateTelegramWebhookSecret } from './lib/prompts.mjs';
 import { updateEnvVariable } from './lib/auth.mjs';
-import { runVerificationFlow, verifyRestart } from './lib/telegram-verify.mjs';
+import { runVerificationFlow } from './lib/telegram-verify.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = join(__dirname, '..');
@@ -204,38 +204,27 @@ async function main() {
     tgSpinner.fail(`Failed: ${tgResult.description}`);
   }
 
-  // Handle chat ID verification
+  // Handle chat ID verification (required — bot ignores all messages without it)
   let telegramChatId = env?.TELEGRAM_CHAT_ID;
 
   if (telegramChatId) {
     printInfo(`Using existing chat ID: ${telegramChatId}`);
   } else {
-    const shouldCapture = await confirm('Capture Telegram chat ID for security? (recommended)');
+    // Generate new code and update .env
+    const verificationCode = generateVerificationCode();
+    updateEnvVariable('TELEGRAM_VERIFICATION', verificationCode);
 
-    if (shouldCapture) {
-      // Generate new code and update .env
-      const verificationCode = generateVerificationCode();
-      updateEnvVariable('TELEGRAM_VERIFICATION', verificationCode);
+    console.log(chalk.yellow('\n  Waiting for server to restart with new verification code...\n'));
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
-      console.log(chalk.yellow('\n  Restart your event handler server to load the new verification code.\n'));
+    const chatId = await runVerificationFlow(verificationCode);
 
-      await confirm('Press enter after restarting the server...');
-
-      const chatId = await runVerificationFlow(verificationCode);
-
-      if (chatId) {
-        updateEnvVariable('TELEGRAM_CHAT_ID', chatId);
-        printSuccess(`Chat ID saved: ${chatId}`);
-
-        const verified = await verifyRestart(ngrokUrl, env?.API_KEY);
-        if (verified) {
-          printSuccess('Telegram bot is configured and working!');
-        } else {
-          printWarning('Could not verify bot. Check your configuration.');
-        }
-      } else {
-        printWarning('Skipped verification');
-      }
+    if (chatId) {
+      updateEnvVariable('TELEGRAM_CHAT_ID', chatId);
+      printSuccess(`Chat ID saved: ${chatId}`);
+    } else {
+      printWarning('Chat ID is required — the bot will not respond without it.');
+      printInfo('Run npm run setup-telegram again to complete setup.');
     }
   }
 

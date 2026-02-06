@@ -403,8 +403,8 @@ async function main() {
         }
       } else if (response.status === 401) {
         healthSpinner.fail('Server responded but API key mismatch');
-        printWarning('Restart the event handler to load the new .env file');
-        const retry = await confirm('Try again after restarting?');
+        printWarning('The server should auto-restart to load the new .env file');
+        const retry = await confirm('Try again?');
         if (!retry) {
           ngrokUrl = testUrl;
         }
@@ -462,8 +462,8 @@ async function main() {
         printWarning('Could not verify bot. Check your configuration.');
       }
     } else {
-      printWarning('Skipped verification. Bot will accept messages from anyone.');
-      printInfo('Run npm run setup-telegram later to configure.');
+      printWarning('Chat ID is required — the bot will not respond without it.');
+      printInfo('Run npm run setup-telegram to complete setup.');
     }
   }
 

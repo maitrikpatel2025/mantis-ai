@@ -8,6 +8,3 @@ Analyze this AI agent job and provide a brief summary (1-2 sentences max). Focus
 Respond in this exact format:
 SUCCESS: true or false
 SUMMARY: your brief summary here
-
-Log:
-{{LOG_CONTENT}}

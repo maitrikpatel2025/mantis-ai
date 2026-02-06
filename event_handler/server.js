@@ -88,10 +88,11 @@ app.post('/telegram/register', async (req, res) => {
 // POST /telegram/webhook - receive Telegram updates
 app.post('/telegram/webhook', async (req, res) => {
   // Validate secret token if configured
+  // Always return 200 to prevent Telegram retry loops on mismatch
   if (TELEGRAM_WEBHOOK_SECRET) {
     const headerSecret = req.headers['x-telegram-bot-api-secret-token'];
     if (headerSecret !== TELEGRAM_WEBHOOK_SECRET) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(200).json({ ok: true });
     }
   }
 
