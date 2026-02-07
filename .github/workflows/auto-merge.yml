@@ -35,9 +35,9 @@ jobs:
           ALLOWED_PATHS="${{ vars.ALLOWED_PATHS }}"
           PR_NUMBER="${{ github.event.pull_request.number }}"
 
-          # Default: only workspace/logs allowed
+          # Default: only workspace allowed
           if [ -z "$ALLOWED_PATHS" ]; then
-            ALLOWED_PATHS="/workspace/logs"
+            ALLOWED_PATHS="/workspace"
           fi
 
           # Normalize: ensure each prefix starts with /
