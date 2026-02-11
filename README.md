@@ -83,14 +83,14 @@ You just bring your own [Anthropic API key](https://console.anthropic.com/).
 
 ### Three steps
 
-**Step 1** — Create a new project:
+**Step 1** — Scaffold a new project:
 
 ```bash
 mkdir my-agent && cd my-agent
 npx thepopebot init
 ```
 
-This scaffolds a Next.js project with all the configuration files, GitHub Actions workflows, and agent templates.
+This creates a Next.js project with configuration files, GitHub Actions workflows, and agent templates. You don't need to create a GitHub repo first — the setup wizard handles that.
 
 **Step 2** — Run the setup wizard:
 
@@ -98,16 +98,66 @@ This scaffolds a Next.js project with all the configuration files, GitHub Action
 npm run setup
 ```
 
-The wizard handles everything:
+The wizard walks you through everything:
 - Checks prerequisites (Node.js, Git, GitHub CLI, ngrok)
-- Creates a GitHub Personal Access Token
-- Collects API keys (Anthropic required; OpenAI optional for voice messages)
+- Creates a GitHub repository and pushes your initial commit
+- Creates a GitHub Personal Access Token (scoped to your repo)
+- Collects API keys (Anthropic required; OpenAI, Groq, Brave optional)
 - Sets GitHub repository secrets and variables
-- Sets up Telegram bot
+- Sets up a Telegram bot (optional)
 - Starts the dev server + ngrok, generates `.env`
 - Registers webhooks and verifies everything works
 
-**Step 3** — Message your Telegram bot to create jobs!
+**Step 3** — Start using your agent:
+
+- **Telegram**: Message your bot to create jobs conversationally. Ask it to do tasks, check job status, or just chat.
+- **Webhook**: Send a POST to `/api/webhook` with your API key to create jobs programmatically.
+- **Cron**: Edit `config/CRONS.json` to schedule recurring jobs.
+
+---
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `npx thepopebot init` | Scaffold a new project, or check for updated templates in an existing one |
+| `npx thepopebot diff [file]` | List files that differ from package templates, or show the diff for a specific file |
+| `npx thepopebot reset [file]` | List all template files, or restore a specific file (or directory) to the package default |
+| `npm run setup` | Run the full interactive setup wizard |
+| `npm run setup-telegram` | Reconfigure the Telegram webhook (useful when your ngrok URL changes) |
+
+---
+
+## Updating
+
+When thepopebot is updated via npm, your customizations are always preserved — template changes are never applied automatically. To update:
+
+```bash
+npm update thepopebot
+npx thepopebot init
+```
+
+`init` will report which templates have drifted (new files are created automatically, existing files are never overwritten):
+
+```
+Updated templates available:
+These files differ from the current package templates.
+
+  config/CRONS.json
+  .github/workflows/run-job.yml
+
+To view differences:  npx thepopebot diff <file>
+To reset to default:  npx thepopebot reset <file>
+```
+
+Review and accept changes at your own pace:
+
+```bash
+npx thepopebot diff config/CRONS.json    # see what changed
+npx thepopebot reset config/CRONS.json   # accept the new template
+```
+
+Or manually merge the changes if you want to keep some of your edits.
 
 ---
 
