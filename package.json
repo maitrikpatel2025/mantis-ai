@@ -1,6 +1,6 @@
 {
   "name": "thepopebot",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Create autonomous AI agents with a two-layer architecture: Next.js Event Handler + Docker Agent.",
   "bin": {
     "thepopebot": "./bin/cli.js"
