@@ -40,7 +40,7 @@ export async function promptForProvider() {
     name: p.label,
     value: key,
   }));
-  choices.push({ name: 'Custom / Local', value: 'custom' });
+  choices.push({ name: 'Local (OpenAI Compatible API)', value: 'custom' });
 
   const { provider } = await inquirer.prompt([
     {
@@ -203,9 +203,8 @@ export async function promptForCustomProvider() {
     {
       type: 'password',
       name: 'apiKey',
-      message: 'API key:',
+      message: 'API key (leave blank if not needed):',
       mask: '*',
-      validate: (input) => input ? true : 'API key is required',
     },
   ]);
 
