@@ -380,15 +380,14 @@ Pre-release builds (beta, alpha, rc) are published to separate npm dist-tags. Th
 **Install the latest pre-release:**
 
 ```bash
-npm install thepopebot@beta
-npx thepopebot init
+mkdir my-agent && cd my-agent
+npx thepopebot@beta init
 ```
 
 **Install a specific version:**
 
 ```bash
-npm install thepopebot@1.3.0-beta.1
-npx thepopebot init
+npx thepopebot@1.3.0-beta.1 init
 ```
 
 **Check available versions:**
