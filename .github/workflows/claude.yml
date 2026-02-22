@@ -30,6 +30,12 @@ jobs:
           fetch-depth: 1
 
       - uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
+          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
+          ANTHROPIC_SMALL_FAST_MODEL: ${{ vars.ANTHROPIC_SMALL_FAST_MODEL }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude_args: '--model claude-sonnet-4-5-20250929 --max-turns 30'
+          claude_args: '--model ${{ vars.ANTHROPIC_MODEL }} --max-turns 30'
+          display_report: 'false'
