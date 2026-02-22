@@ -1,4 +1,4 @@
-# Security Review: thepopebot
+# Security Review: Mantis AI
 
 Full security audit covering: API route handler, NextAuth authentication, middleware, webhook systems, Docker job container, GitHub Actions CI/CD, database layer, CLI/setup tools, and credential management.
 

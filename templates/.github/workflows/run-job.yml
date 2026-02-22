@@ -1,4 +1,4 @@
-name: Run thepopebot Job
+name: Run Mantis AI Job
 
 on:
   create:
@@ -19,10 +19,10 @@ jobs:
           sparse-checkout: package-lock.json
           sparse-checkout-cone-mode: false
 
-      - name: Get thepopebot version
+      - name: Get mantis-ai version
         id: version
         run: |
-          VERSION=$(jq -r '.packages["node_modules/thepopebot"].version // "latest"' package-lock.json)
+          VERSION=$(jq -r '.packages["node_modules/mantis-ai"].version // "latest"' package-lock.json)
           echo "tag=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Login to GHCR
@@ -33,11 +33,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run thepopebot Agent
+      - name: Run Mantis AI Agent
         env:
           ALL_SECRETS: ${{ toJson(secrets) }}
           JOB_IMAGE_URL: ${{ vars.JOB_IMAGE_URL }}
-          THEPOPEBOT_VERSION: ${{ steps.version.outputs.tag }}
+          MANTIS_VERSION: ${{ steps.version.outputs.tag }}
           LLM_MODEL: ${{ vars.LLM_MODEL }}
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
           OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL }}
@@ -45,7 +45,7 @@ jobs:
           if [ -n "$JOB_IMAGE_URL" ]; then
             IMAGE="${JOB_IMAGE_URL}:latest"
           else
-            IMAGE="stephengpope/thepopebot:job-${THEPOPEBOT_VERSION}"
+            IMAGE="maitrikpatel2025/mantis-ai:job-${MANTIS_VERSION}"
           fi
           echo "Using image: $IMAGE"
 

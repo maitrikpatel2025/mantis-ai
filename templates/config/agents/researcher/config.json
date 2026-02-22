@@ -1,0 +1,6 @@
+{
+  "name": "researcher",
+  "description": "Research specialist — investigates topics, gathers information, and provides structured reports",
+  "tools": ["create_job", "get_job_status"],
+  "enabled": true
+}

@@ -22,8 +22,8 @@ services:
     restart: unless-stopped
 
   event-handler:
-    container_name: thepopebot-event-handler
-    image: ${EVENT_HANDLER_IMAGE_URL:-stephengpope/thepopebot:event-handler-${THEPOPEBOT_VERSION:-latest}}
+    container_name: mantis-event-handler
+    image: ${EVENT_HANDLER_IMAGE_URL:-maitrikpatel2025/mantis-ai:event-handler-${MANTIS_VERSION:-latest}}
     volumes:
       - .:/app
       - /app/node_modules

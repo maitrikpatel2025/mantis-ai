@@ -1,10 +1,10 @@
 /**
- * Next.js instrumentation hook for thepopebot.
+ * Next.js instrumentation hook for Mantis AI.
  * This file is loaded by Next.js on server start when instrumentationHook is enabled.
  *
  * Users should create an instrumentation.js in their project root that imports this:
  *
- *   export { register } from 'thepopebot/instrumentation';
+ *   export { register } from 'mantis-ai/instrumentation';
  *
  * Or they can re-export and add their own logic.
  */
@@ -38,6 +38,10 @@ export async function register() {
   const { initDatabase } = await import('../lib/db/index.js');
   initDatabase();
 
+  // Initialize channel registry
+  const { initChannelRegistry } = await import('../lib/channels/registry.js');
+  await initChannelRegistry();
+
   // Start cron scheduler
   const { loadCrons } = await import('../lib/cron.js');
   loadCrons();
@@ -53,5 +57,5 @@ export async function register() {
     if (stored) setUpdateAvailable(stored);
   } catch {}
 
-  console.log('thepopebot initialized');
+  console.log('mantis-ai initialized');
 }

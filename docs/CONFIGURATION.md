@@ -23,8 +23,8 @@ All environment variables for the Event Handler (set in `.env` in your project r
 | `ANTHROPIC_API_KEY` | API key for Anthropic provider | For anthropic provider |
 | `OPENAI_API_KEY` | API key for OpenAI provider / Whisper voice transcription | For openai provider or voice |
 | `GOOGLE_API_KEY` | API key for Google provider | For google provider |
-| `DATABASE_PATH` | Override SQLite database location (default: `data/thepopebot.sqlite`) | No |
-| `THEPOPEBOT_VERSION` | Package version for Docker image tags (auto-set by setup) | No |
+| `DATABASE_PATH` | Override SQLite database location (default: `data/mantis.sqlite`) | No |
+| `MANTIS_VERSION` | Package version for Docker image tags (auto-set by setup) | No |
 | `LETSENCRYPT_EMAIL` | Email for Let's Encrypt SSL (docker-compose only) | No |
 | `EVENT_HANDLER_IMAGE_URL` | Custom event handler Docker image | No |
 | `JOB_IMAGE_URL` | Custom job agent Docker image | No |
@@ -54,8 +54,8 @@ Configure in **Settings → Secrets and variables → Actions → Variables**:
 | `APP_URL` | Public URL for the event handler (e.g., `https://mybot.example.com`) | Yes | — |
 | `AUTO_MERGE` | Set to `false` to disable auto-merge of job PRs | No | Enabled |
 | `ALLOWED_PATHS` | Comma-separated path prefixes for auto-merge | No | `/logs` |
-| `JOB_IMAGE_URL` | Docker image path for job agent (e.g., `ghcr.io/myorg/mybot`) | No | `stephengpope/thepopebot:job-${THEPOPEBOT_VERSION}` |
-| `EVENT_HANDLER_IMAGE_URL` | Docker image path for event handler | No | `stephengpope/thepopebot:event-handler-${THEPOPEBOT_VERSION}` |
+| `JOB_IMAGE_URL` | Docker image path for job agent (e.g., `ghcr.io/myorg/mybot`) | No | `maitrikpatel2025/mantis-ai:job-${MANTIS_VERSION}` |
+| `EVENT_HANDLER_IMAGE_URL` | Docker image path for event handler | No | `maitrikpatel2025/mantis-ai:event-handler-${MANTIS_VERSION}` |
 | `RUNS_ON` | GitHub Actions runner label (e.g., `self-hosted`) | No | `ubuntu-latest` |
 | `LLM_PROVIDER` | LLM provider (`anthropic`, `openai`, `google`) | No | `anthropic` |
 | `LLM_MODEL` | LLM model name for the Pi agent | No | Provider default |

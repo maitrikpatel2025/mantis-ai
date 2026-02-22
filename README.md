@@ -1,8 +1,8 @@
-# Why thepopebot?
+# Why Mantis AI?
 
 **The repository IS the agent** — Every action your agent takes is a git commit. You can see exactly what it did, when, and why. If it screws up, revert it. Want to clone your agent? Fork the repo — code, personality, scheduled jobs, full history, all of it goes with your fork.
 
-**Free compute, built in** — Every GitHub account comes with free cloud computing time. thepopebot uses that to run your agent. One task or a hundred in parallel — the compute is already included.
+**Free compute, built in** — Every GitHub account comes with free cloud computing time. Mantis AI uses that to run your agent. One task or a hundred in parallel — the compute is already included.
 
 **Self-evolving** — The agent modifies its own code through pull requests. Every change is auditable, every change is reversible. You stay in control.
 
@@ -50,7 +50,7 @@ You interact with your bot via the web chat interface or Telegram (optional). Th
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=stephengpope/thepopebot&type=date&legend=top-left)](https://www.star-history.com/#stephengpope/thepopebot&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=maitrikpatel2025/mantis-ai&type=date&legend=top-left)](https://www.star-history.com/#maitrikpatel2025/mantis-ai&type=date&legend=top-left)
 
 ---
 
@@ -75,7 +75,7 @@ You interact with your bot via the web chat interface or Telegram (optional). Th
 
 ```bash
 mkdir my-agent && cd my-agent
-npx thepopebot@latest init
+npx mantis-ai@latest init
 ```
 
 This creates a Next.js project with configuration files, GitHub Actions workflows, and agent templates. You don't need to create a GitHub repo first — the setup wizard handles that.
@@ -115,16 +115,16 @@ docker compose up -d
 **1. Update the package**
 
 ```bash
-npm install thepopebot@latest
+npm install mantis-ai@latest
 ```
 
 **2. Scaffold and update templates**
 
 ```bash
-npx thepopebot init
+npx mantis-ai init
 ```
 
-For most people, that's it — `init` handles everything. It updates your project files, runs `npm install`, and updates `THEPOPEBOT_VERSION` in your local `.env`. See [Understanding `init`](#understanding-init) below for details on what this updates and how to handle custom changes.
+For most people, that's it — `init` handles everything. It updates your project files, runs `npm install`, and updates `MANTIS_VERSION` in your local `.env`. See [Understanding `init`](#understanding-init) below for details on what this updates and how to handle custom changes.
 
 **3. Rebuild for local dev**
 
@@ -135,11 +135,11 @@ npm run build
 **4. Commit and push**
 
 ```bash
-git add -A && git commit -m "upgrade thepopebot to vX.X.X"
+git add -A && git commit -m "upgrade mantis-ai to vX.X.X"
 git push
 ```
 
-Pushing to `main` triggers the `rebuild-event-handler.yml` workflow on your server. It detects the version change, runs `thepopebot init`, updates `THEPOPEBOT_VERSION` in the server's `.env`, pulls the new Docker image, restarts the container, rebuilds `.next`, and reloads PM2 — no manual `docker compose` needed.
+Pushing to `main` triggers the `rebuild-event-handler.yml` workflow on your server. It detects the version change, runs `mantis-ai init`, updates `MANTIS_VERSION` in the server's `.env`, pulls the new Docker image, restarts the container, rebuilds `.next`, and reloads PM2 — no manual `docker compose` needed.
 
 > **Upgrade failed?** See [Recovering from a Failed Upgrade](docs/UPGRADE.md#recovering-from-a-failed-upgrade).
 
@@ -147,7 +147,7 @@ Pushing to `main` triggers the `rebuild-event-handler.yml` workflow on your serv
 
 #### How your project is structured
 
-When you ran `thepopebot init` the first time, it scaffolded a project folder with two kinds of files:
+When you ran `mantis-ai init` the first time, it scaffolded a project folder with two kinds of files:
 
 **Your files** — These are yours to customize. `init` will never overwrite them:
 
@@ -178,15 +178,15 @@ These files differ from the current package templates.
 
   config/CRONS.json
 
-To view differences:  npx thepopebot diff <file>
-To reset to default:  npx thepopebot reset <file>
+To view differences:  npx mantis-ai diff <file>
+To reset to default:  npx mantis-ai reset <file>
 ```
 
 You can review at your own pace:
 
 ```bash
-npx thepopebot diff config/CRONS.json    # see what changed
-npx thepopebot reset config/CRONS.json   # accept the new template
+npx mantis-ai diff config/CRONS.json    # see what changed
+npx mantis-ai reset config/CRONS.json   # accept the new template
 ```
 
 #### If you've modified managed files
@@ -194,14 +194,14 @@ npx thepopebot reset config/CRONS.json   # accept the new template
 If you've made custom changes to managed files (e.g., added extra steps to a GitHub Actions workflow), use `--no-managed` so `init` doesn't overwrite your changes:
 
 ```bash
-npx thepopebot init --no-managed
+npx mantis-ai init --no-managed
 ```
 
 ---
 
 ## CLI Commands
 
-All commands are run via `npx thepopebot <command>` (or the `npm run` shortcuts where noted).
+All commands are run via `npx mantis-ai <command>` (or the `npm run` shortcuts where noted).
 
 **Project setup:**
 
@@ -239,7 +239,7 @@ GitHub secrets use a prefix convention so the workflow can route them correctly:
 
 ## Template File Conventions
 
-The `templates/` directory contains files scaffolded into user projects by `thepopebot init`. Two naming conventions handle files that npm or AI tools would otherwise misinterpret:
+The `templates/` directory contains files scaffolded into user projects by `mantis-ai init`. Two naming conventions handle files that npm or AI tools would otherwise misinterpret:
 
 **`.template` suffix** — Files ending in `.template` are scaffolded with the suffix stripped. This is used for files that npm mangles (`.gitignore`) or that AI tools would pick up as real project docs (`CLAUDE.md`).
 
@@ -255,7 +255,7 @@ The `templates/` directory contains files scaffolded into user projects by `thep
 
 ## Security
 
-thepopebot includes API key authentication, webhook secret validation (fail-closed), session encryption, secret filtering in the Docker agent, and auto-merge path restrictions. However, all software carries risk — thepopebot is provided as-is, and you are responsible for securing your own infrastructure. If you're running locally with a tunnel (ngrok, Cloudflare Tunnel, port forwarding), be aware that your dev server endpoints are publicly accessible with no rate limiting and no TLS on the local hop.
+Mantis AI includes API key authentication, webhook secret validation (fail-closed), session encryption, secret filtering in the Docker agent, and auto-merge path restrictions. However, all software carries risk — Mantis AI is provided as-is, and you are responsible for securing your own infrastructure. If you're running locally with a tunnel (ngrok, Cloudflare Tunnel, port forwarding), be aware that your dev server endpoints are publicly accessible with no rate limiting and no TLS on the local hop.
 
 See [docs/SECURITY.md](docs/SECURITY.md) for full details on what's exposed, the risks, and recommendations.
 

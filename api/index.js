@@ -3,6 +3,7 @@ import { createJob } from '../lib/tools/create-job.js';
 import { setWebhook } from '../lib/tools/telegram.js';
 import { getJobStatus } from '../lib/tools/github.js';
 import { getTelegramAdapter } from '../lib/channels/index.js';
+import { getChannelRegistry } from '../lib/channels/registry.js';
 import { chat, summarizeJob } from '../lib/ai/index.js';
 import { createNotification } from '../lib/db/notifications.js';
 import { loadTriggers } from '../lib/triggers.js';
@@ -29,8 +30,19 @@ function getFireTriggers() {
   return _fireTriggers;
 }
 
-// Routes that have their own authentication
-const PUBLIC_ROUTES = ['/telegram/webhook', '/github/webhook', '/ping'];
+// Static routes that have their own authentication
+const STATIC_PUBLIC_ROUTES = ['/telegram/webhook', '/github/webhook', '/ping'];
+
+/**
+ * Get all public routes (static + dynamic channel webhook paths).
+ * @returns {string[]}
+ */
+function getPublicRoutes() {
+  const registry = getChannelRegistry();
+  const channelPaths = registry.getWebhookPaths();
+  // Merge static and dynamic, deduped
+  return [...new Set([...STATIC_PUBLIC_ROUTES, ...channelPaths])];
+}
 
 /**
  * Timing-safe string comparison.
@@ -54,7 +66,7 @@ function safeCompare(a, b) {
  * @returns {Response|null} - Error response or null if authorized
  */
 function checkAuth(routePath, request) {
-  if (PUBLIC_ROUTES.includes(routePath)) return null;
+  if (getPublicRoutes().includes(routePath)) return null;
 
   const apiKey = request.headers.get('x-api-key');
   if (!apiKey) {
@@ -121,8 +133,45 @@ async function handleTelegramWebhook(request) {
   if (!normalized) return Response.json({ ok: true });
 
   // Process message asynchronously (don't block the webhook response)
-  processChannelMessage(adapter, normalized).catch((err) => {
+  processChannelMessage(adapter, normalized, 'telegram').catch((err) => {
     console.error('Failed to process message:', err);
+  });
+
+  return Response.json({ ok: true });
+}
+
+/**
+ * Handle a webhook from any registered channel via the channel registry.
+ * @param {Request} request
+ * @param {string} routePath
+ * @returns {Promise<Response>}
+ */
+async function handleChannelWebhook(request, routePath) {
+  const registry = getChannelRegistry();
+  const match = registry.getByRoute(routePath);
+  if (!match) return Response.json({ error: 'Not found' }, { status: 404 });
+
+  const { id, adapter } = match;
+
+  const normalized = await adapter.receive(request);
+  if (!normalized) return Response.json({ ok: true });
+
+  // Handle platform-specific handshake responses
+  if (normalized._challenge !== undefined) {
+    // Slack URL verification or WhatsApp verification challenge
+    return new Response(normalized._challenge, {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain' },
+    });
+  }
+  if (normalized._pong) {
+    // Discord PING
+    return Response.json({ type: 1 });
+  }
+
+  // Process message asynchronously (don't block the webhook response)
+  processChannelMessage(adapter, normalized, id).catch((err) => {
+    console.error(`[${id}] Failed to process message:`, err);
   });
 
   return Response.json({ ok: true });
@@ -131,8 +180,11 @@ async function handleTelegramWebhook(request) {
 /**
  * Process a normalized message through the AI layer with channel UX.
  * Message persistence is handled centrally by the AI layer.
+ * @param {import('../lib/channels/base.js').ChannelAdapter} adapter
+ * @param {object} normalized
+ * @param {string} channelId - Channel identifier for userId (e.g., 'telegram', 'slack-main')
  */
-async function processChannelMessage(adapter, normalized) {
+async function processChannelMessage(adapter, normalized, channelId) {
   await adapter.acknowledge(normalized.metadata);
   const stopIndicator = adapter.startProcessingIndicator(normalized.metadata);
 
@@ -141,7 +193,7 @@ async function processChannelMessage(adapter, normalized) {
       normalized.threadId,
       normalized.text,
       normalized.attachments,
-      { userId: 'telegram', chatTitle: 'Telegram' }
+      { userId: channelId, chatTitle: channelId }
     );
     await adapter.sendResponse(normalized.threadId, response, normalized.metadata);
   } catch (err) {
@@ -185,6 +237,11 @@ async function handleGithubWebhook(request) {
     const message = await summarizeJob(results);
     await createNotification(message, payload);
 
+    // Send notification to subscribed channels
+    sendChannelNotifications(message).catch((err) => {
+      console.error('Failed to send channel notifications:', err);
+    });
+
     console.log(`Notification saved for job ${jobId.slice(0, 8)}`);
 
     return Response.json({ ok: true, notified: true });
@@ -203,6 +260,37 @@ async function handleJobStatus(request) {
   } catch (err) {
     console.error('Failed to get job status:', err);
     return Response.json({ error: 'Failed to get job status' }, { status: 500 });
+  }
+}
+
+/**
+ * Send a notification message to all subscribed channels.
+ * Uses the subscriptions table to find which channels/threads to notify.
+ * @param {string} message - Notification message text
+ */
+async function sendChannelNotifications(message) {
+  try {
+    const { getDb } = await import('../lib/db/index.js');
+    const { subscriptions } = await import('../lib/db/schema.js');
+    const db = getDb();
+    const subs = db.select().from(subscriptions).all();
+
+    if (!subs || subs.length === 0) return;
+
+    const registry = getChannelRegistry();
+
+    for (const sub of subs) {
+      try {
+        const entry = registry.getById(sub.platform);
+        if (entry?.adapter) {
+          await entry.adapter.sendResponse(sub.channelId, message, {});
+        }
+      } catch (err) {
+        console.error(`[notify] Failed to send to ${sub.platform}/${sub.channelId}:`, err.message);
+      }
+    }
+  } catch (err) {
+    console.error('[notify] Failed to send channel notifications:', err.message);
   }
 }
 
@@ -231,13 +319,20 @@ async function POST(request) {
     // Trigger errors are non-fatal
   }
 
-  // Route to handler
+  // Route to handler — check static routes first, then dynamic channel registry
   switch (routePath) {
     case '/create-job':          return handleWebhook(request);
     case '/telegram/webhook':   return handleTelegramWebhook(request);
     case '/telegram/register':  return handleTelegramRegister(request);
     case '/github/webhook':     return handleGithubWebhook(request);
-    default:                    return Response.json({ error: 'Not found' }, { status: 404 });
+    default: {
+      // Check channel registry for dynamic webhook routes
+      const registry = getChannelRegistry();
+      if (registry.getByRoute(routePath)) {
+        return handleChannelWebhook(request, routePath);
+      }
+      return Response.json({ error: 'Not found' }, { status: 404 });
+    }
   }
 }
 
@@ -252,7 +347,14 @@ async function GET(request) {
   switch (routePath) {
     case '/ping':           return Response.json({ message: 'Pong!' });
     case '/jobs/status':    return handleJobStatus(request);
-    default:                return Response.json({ error: 'Not found' }, { status: 404 });
+    default: {
+      // Check channel registry for GET handlers (WhatsApp verification)
+      const registry = getChannelRegistry();
+      if (registry.getByRoute(routePath)) {
+        return handleChannelWebhook(request, routePath);
+      }
+      return Response.json({ error: 'Not found' }, { status: 404 });
+    }
   }
 }
 

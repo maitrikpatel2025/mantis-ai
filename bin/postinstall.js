@@ -8,20 +8,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // postinstall runs from the package dir inside node_modules.
-// The user's project root is two levels up: node_modules/thepopebot/ -> project root
+// The user's project root is two levels up: node_modules/mantis-ai/ -> project root
 const projectRoot = path.resolve(__dirname, '..', '..', '..');
 const templatesDir = path.join(__dirname, '..', 'templates');
 
 // Skip if templates dir doesn't exist (shouldn't happen, but be safe)
 if (!fs.existsSync(templatesDir)) process.exit(0);
 
-// Skip if this doesn't look like a user project (no package.json with thepopebot dep)
+// Skip if this doesn't look like a user project (no package.json with mantis-ai dep)
 const pkgPath = path.join(projectRoot, 'package.json');
 if (!fs.existsSync(pkgPath)) process.exit(0);
 try {
   const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
   const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-  if (!deps || !deps.thepopebot) process.exit(0);
+  if (!deps || !deps['mantis-ai']) process.exit(0);
 } catch { process.exit(0); }
 
 function walk(dir) {
@@ -52,12 +52,12 @@ for (const relPath of walk(templatesDir)) {
 }
 
 if (changed.length > 0) {
-  console.log('\n  thepopebot: these project files differ from the latest package templates.');
-  console.log('  This is normal if you\'ve customized them. If thepopebot was just');
+  console.log('\n  mantis-ai: these project files differ from the latest package templates.');
+  console.log('  This is normal if you\'ve customized them. If mantis-ai was just');
   console.log('  updated, new defaults may be available.\n');
   for (const file of changed) {
     console.log(`    ${file}`);
   }
-  console.log('\n  To compare: npx thepopebot diff <file>');
-  console.log('  To restore: npx thepopebot reset <file>\n');
+  console.log('\n  To compare: npx mantis-ai diff <file>');
+  console.log('  To restore: npx mantis-ai reset <file>\n');
 }

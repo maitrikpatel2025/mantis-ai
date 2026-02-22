@@ -1,5 +1,5 @@
-import { auth } from 'thepopebot/auth';
-import { NotificationsPage } from 'thepopebot/chat';
+import { auth } from 'mantis-ai/auth';
+import { NotificationsPage } from 'mantis-ai/chat';
 
 export default async function NotificationsRoute() {
   const session = await auth();

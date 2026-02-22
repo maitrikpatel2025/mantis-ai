@@ -1,3 +1,3 @@
-import { withThepopebot } from 'thepopebot/config';
+import { withMantis } from 'mantis-ai/config';
 
-export default withThepopebot({});
+export default withMantis({});

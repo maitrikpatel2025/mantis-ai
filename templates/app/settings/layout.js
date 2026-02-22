@@ -1,5 +1,5 @@
-import { auth } from 'thepopebot/auth';
-import { SettingsLayout } from 'thepopebot/chat';
+import { auth } from 'mantis-ai/auth';
+import { SettingsLayout } from 'mantis-ai/chat';
 
 export default async function Layout({ children }) {
   const session = await auth();

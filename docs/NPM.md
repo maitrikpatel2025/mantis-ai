@@ -56,7 +56,7 @@ git commit -m "update pi-skills to latest"
 # Beta release (does not affect `latest` tag — safe for testing)
 npm publish --tag beta
 
-# Stable release (updates `latest` — what users get with `npm install thepopebot`)
+# Stable release (updates `latest` — what users get with `npm install mantis-ai`)
 npm publish
 ```
 
@@ -67,6 +67,6 @@ npm publish
 npm pack --dry-run
 
 # Check a published version
-npm view thepopebot versions --json
-npm pack thepopebot@<version> && tar tzf thepopebot-<version>.tgz
+npm view mantis-ai versions --json
+npm pack mantis-ai@<version> && tar tzf mantis-ai-<version>.tgz
 ```

@@ -1,10 +1,10 @@
 {
-  "name": "thepopebot",
+  "name": "mantis-ai",
   "version": "1.2.70",
   "type": "module",
   "description": "Create autonomous AI agents with a two-layer architecture: Next.js Event Handler + Docker Agent.",
   "bin": {
-    "thepopebot": "./bin/cli.js"
+    "mantis-ai": "./bin/cli.js"
   },
   "main": "api/index.js",
   "exports": {
@@ -18,6 +18,8 @@
     "./chat": "./lib/chat/components/index.js",
     "./chat/actions": "./lib/chat/actions.js",
     "./middleware": "./lib/auth/middleware.js",
+    "./skills": "./lib/skills/index.js",
+    "./channels": "./lib/channels/index.js",
     "./package.json": "./package.json"
   },
   "files": [
@@ -47,7 +49,7 @@
     "claude",
     "nextjs"
   ],
-  "author": "Stephen Pope",
+  "author": "Maitrik Patel",
   "license": "MIT",
   "dependencies": {
     "@ai-sdk/react": "^2.0.0",

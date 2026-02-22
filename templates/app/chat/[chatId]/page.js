@@ -1,5 +1,5 @@
-import { auth } from 'thepopebot/auth';
-import { ChatPage } from 'thepopebot/chat';
+import { auth } from 'mantis-ai/auth';
+import { ChatPage } from 'mantis-ai/chat';
 
 export default async function ChatRoute({ params }) {
   const { chatId } = await params;

@@ -1,16 +1,16 @@
-# thepopebot - AI Agent NPM Package
+# Mantis AI - AI Agent NPM Package
 
-This document explains the thepopebot codebase for AI assistants working on this package.
+This document explains the Mantis AI codebase for AI assistants working on this package.
 
-## What is thepopebot?
+## What is Mantis AI?
 
-thepopebot is an **NPM package** for creating custom autonomous AI agents. Users install it via `npx thepopebot init`, which scaffolds a Next.js project. It features a two-layer architecture: a Next.js Event Handler for orchestration (webhooks, Telegram chat, cron scheduling) and a Docker Agent for autonomous task execution via the Pi coding agent.
+Mantis AI is an **NPM package** for creating custom autonomous AI agents. Users install it via `npx mantis-ai init`, which scaffolds a Next.js project. It features a two-layer architecture: a Next.js Event Handler for orchestration (webhooks, Telegram chat, cron scheduling) and a Docker Agent for autonomous task execution via the Pi coding agent.
 
 ## Package vs. Templates — Where Code Goes
 
-All event handler logic, API routes, library code, and core functionality lives in the **npm package** (`api/`, `lib/`, `config/`, `bin/`). This is what users import when they `import ... from 'thepopebot/...'`.
+All event handler logic, API routes, library code, and core functionality lives in the **npm package** (`api/`, `lib/`, `config/`, `bin/`). This is what users import when they `import ... from 'mantis-ai/...'`.
 
-The `templates/` directory contains **only files that get scaffolded into user projects** via `npx thepopebot init`. Templates are for user-editable configuration and thin wiring — things users are expected to customize or override. Never add core logic to templates.
+The `templates/` directory contains **only files that get scaffolded into user projects** via `npx mantis-ai init`. Templates are for user-editable configuration and thin wiring — things users are expected to customize or override. Never add core logic to templates.
 
 **When adding or modifying event handler code, always put it in the package itself (e.g., `api/`, `lib/`), not in `templates/`.** Templates should only contain:
 - Configuration files users edit (`config/SOUL.md`, `config/CRONS.json`, etc.)
@@ -58,7 +58,7 @@ The `templates/` directory contains **only files that get scaffolded into user p
 
 ```
 /
-├── api/                        # Next.js route handlers (exported as thepopebot/api)
+├── api/                        # Next.js route handlers (exported as mantis-ai/api)
 │   └── index.js                # GET/POST handlers for all /api/* routes
 ├── lib/                        # Core implementation
 │   ├── actions.js              # Shared action executor (agent, command, webhook)
@@ -74,12 +74,12 @@ The `templates/` directory contains **only files that get scaffolded into user p
 │   └── utils/
 │       └── render-md.js        # Markdown {{include}} processor
 ├── config/
-│   ├── index.js                # withThepopebot() Next.js config wrapper
+│   ├── index.js                # withMantis() Next.js config wrapper
 │   └── instrumentation.js      # Server startup hook (loads .env, starts crons)
 ├── bin/
 │   └── cli.js                  # CLI: init, setup, setup-telegram, reset, diff
 ├── setup/                      # Interactive setup wizard
-├── templates/                  # Files scaffolded to user projects by `thepopebot init`
+├── templates/                  # Files scaffolded to user projects by `mantis-ai init`
 │   ├── app/                    # Next.js app (pages, API routes, components)
 │   ├── .github/workflows/      # GitHub Actions (auto-merge, build-image, deploy, run-job, notify)
 │   ├── docker/                 # Docker files for job and event-handler containers
@@ -99,9 +99,9 @@ The `templates/` directory contains **only files that get scaffolded into user p
 | `lib/cron.js` | Cron scheduler — loads `config/CRONS.json` at server start |
 | `lib/triggers.js` | Trigger middleware — loads `config/TRIGGERS.json` |
 | `lib/utils/render-md.js` | Markdown include and variable processor (`{{filepath}}`, `{{datetime}}`, `{{skills}}`) |
-| `config/index.js` | `withThepopebot()` Next.js config wrapper |
+| `config/index.js` | `withMantis()` Next.js config wrapper |
 | `config/instrumentation.js` | `register()` server startup hook (loads .env, validates AUTH_SECRET, initializes database, starts crons) |
-| `bin/cli.js` | CLI entry point (`thepopebot init`, `setup`, `reset`, `diff`, `set-agent-secret`, `set-agent-llm-secret`, `set-var`) |
+| `bin/cli.js` | CLI entry point (`mantis-ai init`, `setup`, `reset`, `diff`, `set-agent-secret`, `set-agent-llm-secret`, `set-var`) |
 | `lib/ai/index.js` | Chat, streaming, and job summary functions |
 | `lib/ai/agent.js` | LangGraph agent with SQLite checkpointing and tool use |
 | `lib/channels/base.js` | Channel adapter base class (normalize messages across platforms) |
@@ -114,16 +114,16 @@ The `templates/` directory contains **only files that get scaffolded into user p
 
 | Import | Module | Purpose |
 |--------|--------|---------|
-| `thepopebot/api` | `api/index.js` | `GET` and `POST` route handlers — re-exported by the user's catch-all route |
-| `thepopebot/config` | `config/index.js` | `withThepopebot()` — wraps the user's Next.js config to mark server-only packages as external |
-| `thepopebot/instrumentation` | `config/instrumentation.js` | `register()` — Next.js instrumentation hook that loads `.env` and starts cron jobs on server start |
-| `thepopebot/auth` | `lib/auth/index.js` | Auth helpers (`auth()`, `getPageAuthState()`) |
-| `thepopebot/auth/actions` | `lib/auth/actions.js` | Server action for admin setup (`setupAdmin()`) |
-| `thepopebot/chat` | `lib/chat/components/index.js` | Chat UI components |
-| `thepopebot/chat/actions` | `lib/chat/actions.js` | Server actions for chats, notifications, and swarm |
-| `thepopebot/chat/api` | `lib/chat/api.js` | Dedicated chat streaming route handler (session auth) |
-| `thepopebot/db` | `lib/db/index.js` | Database access |
-| `thepopebot/middleware` | `lib/auth/middleware.js` | Auth middleware |
+| `mantis-ai/api` | `api/index.js` | `GET` and `POST` route handlers — re-exported by the user's catch-all route |
+| `mantis-ai/config` | `config/index.js` | `withMantis()` — wraps the user's Next.js config to mark server-only packages as external |
+| `mantis-ai/instrumentation` | `config/instrumentation.js` | `register()` — Next.js instrumentation hook that loads `.env` and starts cron jobs on server start |
+| `mantis-ai/auth` | `lib/auth/index.js` | Auth helpers (`auth()`, `getPageAuthState()`) |
+| `mantis-ai/auth/actions` | `lib/auth/actions.js` | Server action for admin setup (`setupAdmin()`) |
+| `mantis-ai/chat` | `lib/chat/components/index.js` | Chat UI components |
+| `mantis-ai/chat/actions` | `lib/chat/actions.js` | Server actions for chats, notifications, and swarm |
+| `mantis-ai/chat/api` | `lib/chat/api.js` | Dedicated chat streaming route handler (session auth) |
+| `mantis-ai/db` | `lib/db/index.js` | Database access |
+| `mantis-ai/middleware` | `lib/auth/middleware.js` | Auth middleware |
 
 ### Column Naming Convention
 
@@ -134,31 +134,31 @@ Example: `createdAt: integer('created_at')` — use `createdAt` in JS, SQL colum
 
 | Command | Description |
 |---------|-------------|
-| `thepopebot init` | Scaffold a new project — copies templates, creates `package.json`, runs `npm install` |
-| `thepopebot setup` | Run interactive setup wizard (API keys, GitHub secrets, Telegram bot) |
-| `thepopebot setup-telegram` | Reconfigure Telegram webhook only |
-| `thepopebot reset [file]` | Restore a template file to package default (or list all available templates) |
-| `thepopebot diff [file]` | Show differences between project files and package templates |
-| `thepopebot reset-auth` | Regenerate AUTH_SECRET (invalidates all sessions) |
-| `thepopebot set-agent-secret <KEY> [VALUE]` | Set a GitHub secret with `AGENT_` prefix and update `.env` |
-| `thepopebot set-agent-llm-secret <KEY> [VALUE]` | Set a GitHub secret with `AGENT_LLM_` prefix |
-| `thepopebot set-var <KEY> [VALUE]` | Set a GitHub repository variable |
+| `mantis-ai init` | Scaffold a new project — copies templates, creates `package.json`, runs `npm install` |
+| `mantis-aisetup` | Run interactive setup wizard (API keys, GitHub secrets, Telegram bot) |
+| `mantis-aisetup-telegram` | Reconfigure Telegram webhook only |
+| `mantis-aireset [file]` | Restore a template file to package default (or list all available templates) |
+| `mantis-aidiff [file]` | Show differences between project files and package templates |
+| `mantis-aireset-auth` | Regenerate AUTH_SECRET (invalidates all sessions) |
+| `mantis-aiset-agent-secret <KEY> [VALUE]` | Set a GitHub secret with `AGENT_` prefix and update `.env` |
+| `mantis-aiset-agent-llm-secret <KEY> [VALUE]` | Set a GitHub secret with `AGENT_LLM_` prefix |
+| `mantis-aiset-var <KEY> [VALUE]` | Set a GitHub repository variable |
 
 ## How User Projects Work
 
-When a user runs `npx thepopebot init`, the CLI scaffolds a Next.js project that wires into the package:
+When a user runs `npx mantis-ai init`, the CLI scaffolds a Next.js project that wires into the package:
 
-1. **`next.config.mjs`** imports `withThepopebot` from `thepopebot/config` — marks server-only dependencies as external so they aren't bundled for the client
-2. **`instrumentation.js`** re-exports `register` from `thepopebot/instrumentation` — Next.js calls this on server start to load `.env`, validate AUTH_SECRET, initialize the database, and start cron jobs
-3. **`app/api/[...thepopebot]/route.js`** re-exports `GET` and `POST` from `thepopebot/api` — catch-all route that handles all `/api/*` requests
-4. **`middleware.js`** re-exports auth middleware from `thepopebot/middleware` — protects all routes except `/login` and `/api`
-5. **`app/api/auth/[...nextauth]/route.js`** re-exports from `thepopebot/auth` — handles NextAuth login/session routes
+1. **`next.config.mjs`** imports `withMantis` from `mantis-ai/config` — marks server-only dependencies as external so they aren't bundled for the client
+2. **`instrumentation.js`** re-exports `register` from `mantis-ai/instrumentation` — Next.js calls this on server start to load `.env`, validate AUTH_SECRET, initialize the database, and start cron jobs
+3. **`app/api/[...mantis]/route.js`** re-exports `GET` and `POST` from `mantis-ai/api` — catch-all route that handles all `/api/*` requests
+4. **`middleware.js`** re-exports auth middleware from `mantis-ai/middleware` — protects all routes except `/login` and `/api`
+5. **`app/api/auth/[...nextauth]/route.js`** re-exports from `mantis-ai/auth` — handles NextAuth login/session routes
 
 The user's project contains only configuration files (`config/`, `.env`, `.github/workflows/`) and the thin Next.js wiring. All core logic lives in the npm package.
 
 ## Web Interface
 
-thepopebot includes a full web interface for managing the agent, accessible after login at `APP_URL`.
+Mantis AI includes a full web interface for managing the agent, accessible after login at `APP_URL`.
 
 ### Pages
 
@@ -176,7 +176,7 @@ thepopebot includes a full web interface for managing the agent, accessible afte
 
 ### Architecture
 
-Page components live in the package (`lib/chat/components/`) and are exported via `thepopebot/chat`. Template pages in `templates/app/` are thin wrappers that import these components. The UI uses Tailwind CSS with CSS variables for light/dark theming.
+Page components live in the package (`lib/chat/components/`) and are exported via `mantis-ai/chat`. Template pages in `templates/app/` are thin wrappers that import these components. The UI uses Tailwind CSS with CSS variables for light/dark theming.
 
 Server actions in `lib/chat/actions.js` handle all browser-to-server mutations (chat CRUD, notifications, API keys, swarm control) using the `requireAuth()` session pattern.
 
@@ -191,7 +191,7 @@ The web interface uses NextAuth v5 with a Credentials provider (email/password).
 
 ## Database
 
-thepopebot uses SQLite (via Drizzle ORM) for all persistence. The database is stored at `data/thepopebot.sqlite` (override with `DATABASE_PATH` env var) and is initialized automatically on first server start.
+Mantis AI uses SQLite (via Drizzle ORM) for all persistence. The database is stored at `data/mantis.sqlite` (override with `DATABASE_PATH` env var) and is initialized automatically on first server start.
 
 ### Tables
 
@@ -329,7 +329,7 @@ Defined in `config/TRIGGERS.json`, loaded by `lib/triggers.js`. Each trigger wat
 | `GOOGLE_API_KEY` | API key for Google provider | For google provider |
 | `CUSTOM_API_KEY` | API key for custom OpenAI-compatible provider | For custom provider |
 | `AUTH_TRUST_HOST` | Trust host header behind reverse proxy (set `true` for Docker/Traefik) | For reverse proxy |
-| `DATABASE_PATH` | Override SQLite database location (default: `data/thepopebot.sqlite`) | No |
+| `DATABASE_PATH` | Override SQLite database location (default: `data/mantis.sqlite`) | No |
 
 ## Docker Agent Layer
 
@@ -364,8 +364,8 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full production deployment deta
 
 Workflows are scaffolded from `templates/.github/workflows/` into user projects. Read the workflow files directly for implementation details.
 
-- **rebuild-event-handler.yml** — Triggers on push to `main`. Fast path (build + PM2 reload) or Docker restart path if the thepopebot package version changed.
-- **upgrade-event-handler.yml** — Manual `workflow_dispatch`. Creates a PR to upgrade the thepopebot package in an isolated clone.
+- **rebuild-event-handler.yml** — Triggers on push to `main`. Fast path (build + PM2 reload) or Docker restart path if the mantis-ai package version changed.
+- **upgrade-event-handler.yml** — Manual `workflow_dispatch`. Creates a PR to upgrade the mantis-ai package in an isolated clone.
 - **build-image.yml** — Builds and pushes the job Docker image to GHCR when `docker/job/**` changes (only if `JOB_IMAGE_URL` is a `ghcr.io/` URL).
 - **run-job.yml** — Triggers on `job/*` branch creation. Runs the Docker agent container.
 - **auto-merge.yml** — Squash-merges job PRs if `AUTO_MERGE` is not `"false"` and all changed files fall within `ALLOWED_PATHS` prefixes (default: `/logs`).
@@ -389,8 +389,8 @@ Individual GitHub secrets use a prefix-based naming convention:
 | `APP_URL` | Public URL for the event handler (e.g., `https://mybot.example.com`) | — |
 | `AUTO_MERGE` | Set to `false` to disable auto-merge of job PRs | Enabled (any value except `false`) |
 | `ALLOWED_PATHS` | Comma-separated path prefixes (e.g., `/logs`). Use `/` for all paths. | `/logs` |
-| `JOB_IMAGE_URL` | Full Docker image path for the job agent (e.g., `ghcr.io/myorg/mybot`). GHCR URLs trigger automatic builds via `build-image.yml`. Non-GHCR URLs (e.g., `docker.io/user/mybot`) are pulled directly. | Not set (uses `stephengpope/thepopebot:job-${THEPOPEBOT_VERSION}`) |
-| `EVENT_HANDLER_IMAGE_URL` | Docker image path for the event handler | Not set (uses `stephengpope/thepopebot-event-handler:latest`) |
+| `JOB_IMAGE_URL` | Full Docker image path for the job agent (e.g., `ghcr.io/myorg/mybot`). GHCR URLs trigger automatic builds via `build-image.yml`. Non-GHCR URLs (e.g., `docker.io/user/mybot`) are pulled directly. | Not set (uses `maitrikpatel2025/mantis-ai:job-${MANTIS_VERSION}`) |
+| `EVENT_HANDLER_IMAGE_URL` | Docker image path for the event handler | Not set (uses `maitrikpatel2025/mantis-event-handler:latest`) |
 | `RUNS_ON` | GitHub Actions runner label (e.g., `self-hosted` for docker-compose runner) | `ubuntu-latest` |
 | `LLM_PROVIDER` | LLM provider for the Pi agent (`anthropic`, `openai`, `google`) | Not set (default: `anthropic`) |
 | `LLM_MODEL` | LLM model name for the Pi agent (e.g., `claude-sonnet-4-5-20250929`) | Not set (provider default) |
@@ -401,7 +401,7 @@ GitHub secrets with `AGENT_*` and `AGENT_LLM_*` prefixes are collected by `run-j
 
 ## Customization Points
 
-Users create their agent project with `npx thepopebot init` then `npm run setup`. The setup wizard handles API keys, GitHub secrets/variables, and Telegram bot configuration. Users customize their agent by editing:
+Users create their agent project with `npx mantis-ai init` then `npm run setup`. The setup wizard handles API keys, GitHub secrets/variables, and Telegram bot configuration. Users customize their agent by editing:
 
 - **config/SOUL.md** — Personality, identity, and values (who the agent is)
 - **config/EVENT_HANDLER.md** — Event handler system prompt

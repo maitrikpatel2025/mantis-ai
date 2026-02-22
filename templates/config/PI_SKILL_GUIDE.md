@@ -84,6 +84,6 @@ Tell Pi to test the skill with real input after creating it and fix any issues b
 ## Credential setup
 
 If a skill needs an API key, the user should set it up BEFORE the job runs:
-- `npx thepopebot set-agent-llm-secret <KEY_NAME> <value>` — creates a GitHub secret with `AGENT_LLM_` prefix, exposed as an env var in the Docker container
+- `npx mantis-ai set-agent-llm-secret <KEY_NAME> <value>` — creates a GitHub secret with `AGENT_LLM_` prefix, exposed as an env var in the Docker container
 - Also add to `.env` for local development
 - Keys can be rotated later with the same command

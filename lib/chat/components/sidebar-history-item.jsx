@@ -45,7 +45,7 @@ export function SidebarHistoryItem({ chat, isActive, onDelete, onStar, onRename 
           showMenu ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}>
           <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-            <DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild>
               <button
                 className={cn(
                   'rounded-md p-1',

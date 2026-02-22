@@ -47,18 +47,32 @@ function templatePath(userPath, templatesDir) {
 
 function printUsage() {
   console.log(`
-Usage: thepopebot <command>
+Usage: mantis-ai <command>
 
 Commands:
-  init                              Scaffold a new thepopebot project
+  init                              Scaffold a new Mantis AI project
   setup                             Run interactive setup wizard
   setup-telegram                    Reconfigure Telegram webhook
+  setup-slack                       Configure Slack channel
+  setup-discord                     Configure Discord channel
+  setup-whatsapp                    Configure WhatsApp channel
   reset-auth                        Regenerate AUTH_SECRET (invalidates all sessions)
   reset [file]                      Restore a template file (or list available templates)
   diff [file]                       Show differences between project files and package templates
   set-agent-secret <KEY> [VALUE]    Set a GitHub secret with AGENT_ prefix (also updates .env)
   set-agent-llm-secret <KEY> [VALUE]  Set a GitHub secret with AGENT_LLM_ prefix
   set-var <KEY> [VALUE]             Set a GitHub repository variable
+  skills <subcommand>               Manage skills
+    list                            List installed skills
+    search <query>                  Search the remote skill registry
+    install <name>                  Install a skill from the registry
+    remove <name>                   Remove an installed skill
+    enable <name>                   Enable a skill
+    disable <name>                  Disable a skill
+    update [name]                   Check for / apply skill updates
+  agents <subcommand>               Manage sub-agents
+    list                            List configured sub-agents
+    create <name>                   Scaffold a new sub-agent
 `);
 }
 
@@ -88,7 +102,7 @@ async function init() {
   const templatesDir = path.join(packageDir, 'templates');
   const noManaged = args.includes('--no-managed');
 
-  // Guard: warn if the directory is not empty (unless it's an existing thepopebot project)
+  // Guard: warn if the directory is not empty (unless it's an existing Mantis AI project)
   const entries = fs.readdirSync(cwd);
   if (entries.length > 0) {
     const pkgPath = path.join(cwd, 'package.json');
@@ -98,7 +112,7 @@ async function init() {
         const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
         const deps = pkg.dependencies || {};
         const devDeps = pkg.devDependencies || {};
-        if (deps.thepopebot || devDeps.thepopebot) {
+        if (deps['mantis-ai'] || devDeps['mantis-ai']) {
           isExistingProject = true;
         }
       } catch {}
@@ -109,7 +123,7 @@ async function init() {
       const { text, isCancel } = await import('@clack/prompts');
       const dirName = await text({
         message: 'Project directory name:',
-        defaultValue: 'my-popebot',
+        defaultValue: 'my-mantis',
       });
       if (isCancel(dirName)) {
         console.log('\nCancelled.\n');
@@ -123,7 +137,7 @@ async function init() {
     }
   }
 
-  console.log('\nScaffolding thepopebot project...\n');
+  console.log('\nScaffolding Mantis AI project...\n');
 
   const templateFiles = getTemplateFiles(templatesDir);
   const created = [];
@@ -166,7 +180,7 @@ async function init() {
   if (!fs.existsSync(pkgPath)) {
     const dirName = path.basename(cwd);
     const { version } = JSON.parse(fs.readFileSync(path.join(packageDir, 'package.json'), 'utf8'));
-    const thepopebotDep = version.includes('-') ? version : '^1.0.0';
+    const mantisDep = version.includes('-') ? version : '^1.0.0';
     const pkg = {
       name: dirName,
       private: true,
@@ -174,12 +188,12 @@ async function init() {
         dev: 'next dev --turbopack',
         build: 'next build',
         start: 'next start',
-        setup: 'thepopebot setup',
-        'setup-telegram': 'thepopebot setup-telegram',
-        'reset-auth': 'thepopebot reset-auth',
+        setup: 'mantis-ai setup',
+        'setup-telegram': 'mantis-ai setup-telegram',
+        'reset-auth': 'mantis-ai reset-auth',
       },
       dependencies: {
-        thepopebot: thepopebotDep,
+        'mantis-ai': mantisDep,
         next: '^15.5.12',
         'next-auth': '5.0.0-beta.30',
         'next-themes': '^0.4.0',
@@ -228,12 +242,12 @@ async function init() {
   if (changed.length > 0) {
     console.log('\n  Updated templates available:');
     console.log('  These files differ from the current package templates.');
-    console.log('  This may be from your edits, or from a thepopebot update.\n');
+    console.log('  This may be from your edits, or from a mantis-ai update.\n');
     for (const file of changed) {
       console.log(`    ${file}`);
     }
-    console.log('\n  To view differences:  npx thepopebot diff <file>');
-    console.log('  To reset to default:  npx thepopebot reset <file>');
+    console.log('\n  To view differences:  npx mantis-ai diff <file>');
+    console.log('  To reset to default:  npx mantis-ai reset <file>');
   }
 
   // Run npm install
@@ -243,32 +257,32 @@ async function init() {
   // Create or update .env with auto-generated infrastructure values
   const envPath = path.join(cwd, '.env');
   const { randomBytes } = await import('crypto');
-  const thepopebotPkg = JSON.parse(fs.readFileSync(path.join(packageDir, 'package.json'), 'utf8'));
-  const version = thepopebotPkg.version;
+  const mantisPkg = JSON.parse(fs.readFileSync(path.join(packageDir, 'package.json'), 'utf8'));
+  const version = mantisPkg.version;
 
   if (!fs.existsSync(envPath)) {
     // Seed .env for new projects
     const authSecret = randomBytes(32).toString('base64');
-    const seedEnv = `# thepopebot Configuration
+    const seedEnv = `# Mantis AI Configuration
 # Run "npm run setup" to complete configuration
 
 AUTH_SECRET=${authSecret}
 AUTH_TRUST_HOST=true
-THEPOPEBOT_VERSION=${version}
+MANTIS_VERSION=${version}
 `;
     fs.writeFileSync(envPath, seedEnv);
-    console.log(`  Created .env (AUTH_SECRET, THEPOPEBOT_VERSION=${version})`);
+    console.log(`  Created .env (AUTH_SECRET, MANTIS_VERSION=${version})`);
   } else {
-    // Update THEPOPEBOT_VERSION in existing .env
+    // Update MANTIS_VERSION in existing .env
     try {
       let envContent = fs.readFileSync(envPath, 'utf8');
-      if (envContent.match(/^THEPOPEBOT_VERSION=.*/m)) {
-        envContent = envContent.replace(/^THEPOPEBOT_VERSION=.*/m, `THEPOPEBOT_VERSION=${version}`);
+      if (envContent.match(/^MANTIS_VERSION=.*/m)) {
+        envContent = envContent.replace(/^MANTIS_VERSION=.*/m, `MANTIS_VERSION=${version}`);
       } else {
-        envContent = envContent.trimEnd() + `\nTHEPOPEBOT_VERSION=${version}\n`;
+        envContent = envContent.trimEnd() + `\nMANTIS_VERSION=${version}\n`;
       }
       fs.writeFileSync(envPath, envContent);
-      console.log(`  Updated THEPOPEBOT_VERSION to ${version}`);
+      console.log(`  Updated MANTIS_VERSION to ${version}`);
     } catch {}
   }
 
@@ -289,8 +303,8 @@ function reset(filePath) {
     for (const file of files) {
       console.log(`  ${destPath(file)}`);
     }
-    console.log('\nUsage: thepopebot reset <file>');
-    console.log('Example: thepopebot reset config/SOUL.md\n');
+    console.log('\nUsage: mantis-ai reset <file>');
+    console.log('Example: mantis-ai reset config/SOUL.md\n');
     return;
   }
 
@@ -300,7 +314,7 @@ function reset(filePath) {
 
   if (!fs.existsSync(src)) {
     console.error(`\nTemplate not found: ${filePath}`);
-    console.log('Run "thepopebot reset" to see available templates.\n');
+    console.log('Run "mantis-ai reset" to see available templates.\n');
     process.exit(1);
   }
 
@@ -346,8 +360,8 @@ function diff(filePath) {
     if (!anyDiff) {
       console.log('  All files match package templates.');
     }
-    console.log('\nUsage: thepopebot diff <file>');
-    console.log('Example: thepopebot diff config/SOUL.md\n');
+    console.log('\nUsage: mantis-ai diff <file>');
+    console.log('Example: mantis-ai diff config/SOUL.md\n');
     return;
   }
 
@@ -362,7 +376,7 @@ function diff(filePath) {
 
   if (!fs.existsSync(dest)) {
     console.log(`\n${filePath} does not exist in your project.`);
-    console.log(`Run "thepopebot reset ${filePath}" to create it.\n`);
+    console.log(`Run "mantis-ai reset ${filePath}" to create it.\n`);
     return;
   }
 
@@ -372,7 +386,7 @@ function diff(filePath) {
     console.log('\nFiles are identical.\n');
   } catch (e) {
     // git diff exits with 1 when files differ (output already printed)
-    console.log(`\n  To reset: thepopebot reset ${filePath}\n`);
+    console.log(`\n  To reset: mantis-ai reset ${filePath}\n`);
   }
 }
 
@@ -407,6 +421,33 @@ function setup() {
 
 function setupTelegram() {
   const setupScript = path.join(__dirname, '..', 'setup', 'setup-telegram.mjs');
+  try {
+    execSync(`node ${setupScript}`, { stdio: 'inherit', cwd: process.cwd() });
+  } catch {
+    process.exit(1);
+  }
+}
+
+function setupSlack() {
+  const setupScript = path.join(__dirname, '..', 'setup', 'setup-slack.mjs');
+  try {
+    execSync(`node ${setupScript}`, { stdio: 'inherit', cwd: process.cwd() });
+  } catch {
+    process.exit(1);
+  }
+}
+
+function setupDiscord() {
+  const setupScript = path.join(__dirname, '..', 'setup', 'setup-discord.mjs');
+  try {
+    execSync(`node ${setupScript}`, { stdio: 'inherit', cwd: process.cwd() });
+  } catch {
+    process.exit(1);
+  }
+}
+
+function setupWhatsapp() {
+  const setupScript = path.join(__dirname, '..', 'setup', 'setup-whatsapp.mjs');
   try {
     execSync(`node ${setupScript}`, { stdio: 'inherit', cwd: process.cwd() });
   } catch {
@@ -473,8 +514,8 @@ async function promptForValue(key) {
 
 async function setAgentSecret(key, value) {
   if (!key) {
-    console.error('\n  Usage: thepopebot set-agent-secret <KEY> [VALUE]\n');
-    console.error('  Example: thepopebot set-agent-secret ANTHROPIC_API_KEY\n');
+    console.error('\n  Usage: mantis-ai set-agent-secret <KEY> [VALUE]\n');
+    console.error('  Example: mantis-ai set-agent-secret ANTHROPIC_API_KEY\n');
     process.exit(1);
   }
 
@@ -500,8 +541,8 @@ async function setAgentSecret(key, value) {
 
 async function setAgentLlmSecret(key, value) {
   if (!key) {
-    console.error('\n  Usage: thepopebot set-agent-llm-secret <KEY> [VALUE]\n');
-    console.error('  Example: thepopebot set-agent-llm-secret BRAVE_API_KEY\n');
+    console.error('\n  Usage: mantis-ai set-agent-llm-secret <KEY> [VALUE]\n');
+    console.error('  Example: mantis-ai set-agent-llm-secret BRAVE_API_KEY\n');
     process.exit(1);
   }
 
@@ -523,8 +564,8 @@ async function setAgentLlmSecret(key, value) {
 
 async function setVar(key, value) {
   if (!key) {
-    console.error('\n  Usage: thepopebot set-var <KEY> [VALUE]\n');
-    console.error('  Example: thepopebot set-var LLM_MODEL claude-sonnet-4-5-20250929\n');
+    console.error('\n  Usage: mantis-ai set-var <KEY> [VALUE]\n');
+    console.error('  Example: mantis-ai set-var LLM_MODEL claude-sonnet-4-5-20250929\n');
     process.exit(1);
   }
 
@@ -543,6 +584,286 @@ async function setVar(key, value) {
   }
 }
 
+async function skills(subcommand, ...subArgs) {
+  const packageDir = path.join(__dirname, '..');
+  const skillsModule = path.join(packageDir, 'lib', 'skills', 'index.js');
+
+  switch (subcommand) {
+    case 'list': {
+      const { listSkills } = await import(skillsModule);
+      const installed = listSkills();
+      if (installed.length === 0) {
+        console.log('\n  No skills installed.\n');
+        return;
+      }
+      console.log('\n  Installed skills:\n');
+      for (const skill of installed) {
+        const status = skill.enabled ? '\u2705' : '\u274c';
+        console.log(`  ${status}  ${skill.name.padEnd(20)} ${skill.version.padEnd(10)} ${skill.source}`);
+      }
+      console.log('');
+      break;
+    }
+
+    case 'search': {
+      const query = subArgs[0];
+      if (!query) {
+        console.error('\n  Usage: mantis-ai skills search <query>\n');
+        process.exit(1);
+      }
+      const { searchRegistry } = await import(skillsModule);
+      console.log(`\n  Searching for "${query}"...\n`);
+      try {
+        const results = await searchRegistry(query);
+        if (results.length === 0) {
+          console.log('  No skills found.\n');
+          return;
+        }
+        for (const skill of results) {
+          console.log(`  ${skill.name.padEnd(25)} ${(skill.version || '').padEnd(10)} ${skill.description || ''}`);
+        }
+        console.log(`\n  ${results.length} skill(s) found.`);
+        console.log('  Install with: mantis-ai skills install <name>\n');
+      } catch (err) {
+        console.error(`  Failed to search registry: ${err.message}\n`);
+        process.exit(1);
+      }
+      break;
+    }
+
+    case 'install': {
+      const name = subArgs[0];
+      if (!name) {
+        console.error('\n  Usage: mantis-ai skills install <name>\n');
+        process.exit(1);
+      }
+      const { installSkill } = await import(skillsModule);
+      console.log(`\n  Installing ${name}...`);
+      try {
+        const result = await installSkill(name);
+        if (result.success) {
+          console.log(`  ${result.message}\n`);
+        } else {
+          console.error(`  ${result.message}\n`);
+          process.exit(1);
+        }
+      } catch (err) {
+        console.error(`  Failed: ${err.message}\n`);
+        process.exit(1);
+      }
+      break;
+    }
+
+    case 'remove': {
+      const name = subArgs[0];
+      if (!name) {
+        console.error('\n  Usage: mantis-ai skills remove <name>\n');
+        process.exit(1);
+      }
+      const { removeSkill } = await import(skillsModule);
+      const result = removeSkill(name);
+      console.log(`\n  ${result.message}\n`);
+      break;
+    }
+
+    case 'enable': {
+      const name = subArgs[0];
+      if (!name) {
+        console.error('\n  Usage: mantis-ai skills enable <name>\n');
+        process.exit(1);
+      }
+      const { toggleSkill } = await import(skillsModule);
+      const result = toggleSkill(name, true);
+      if (result.success) {
+        console.log(`\n  ${result.message}\n`);
+      } else {
+        console.error(`\n  ${result.message}\n`);
+        process.exit(1);
+      }
+      break;
+    }
+
+    case 'disable': {
+      const name = subArgs[0];
+      if (!name) {
+        console.error('\n  Usage: mantis-ai skills disable <name>\n');
+        process.exit(1);
+      }
+      const { toggleSkill } = await import(skillsModule);
+      const result = toggleSkill(name, false);
+      if (result.success) {
+        console.log(`\n  ${result.message}\n`);
+      } else {
+        console.error(`\n  ${result.message}\n`);
+        process.exit(1);
+      }
+      break;
+    }
+
+    case 'update': {
+      const { checkUpdates, installSkill } = await import(skillsModule);
+      console.log('\n  Checking for updates...');
+      try {
+        const updates = await checkUpdates();
+        if (updates.length === 0) {
+          console.log('  All skills are up to date.\n');
+          return;
+        }
+
+        const targetName = subArgs[0];
+        const toUpdate = targetName ? updates.filter((u) => u.name === targetName) : updates;
+
+        if (toUpdate.length === 0) {
+          console.log(`  ${targetName} is up to date.\n`);
+          return;
+        }
+
+        for (const update of toUpdate) {
+          console.log(`  ${update.name}: ${update.currentVersion} -> ${update.latestVersion}`);
+          const result = await installSkill(update.name);
+          console.log(`    ${result.success ? 'Updated' : 'Failed: ' + result.message}`);
+        }
+        console.log('');
+      } catch (err) {
+        console.error(`  Failed: ${err.message}\n`);
+        process.exit(1);
+      }
+      break;
+    }
+
+    default:
+      console.log(`
+  Usage: mantis-ai skills <subcommand>
+
+  Subcommands:
+    list                List installed skills
+    search <query>      Search the remote skill registry
+    install <name>      Install a skill from the registry
+    remove <name>       Remove an installed skill
+    enable <name>       Enable a skill
+    disable <name>      Disable a skill
+    update [name]       Check for / apply skill updates
+`);
+      if (subcommand) process.exit(1);
+  }
+}
+
+async function agents(subcommand, ...subArgs) {
+  const cwd = process.cwd();
+  const agentsBaseDir = path.join(cwd, 'config', 'agents');
+
+  switch (subcommand) {
+    case 'list': {
+      if (!fs.existsSync(agentsBaseDir)) {
+        console.log('\n  No agents configured.\n');
+        console.log('  Create one with: mantis-ai agents create <name>\n');
+        return;
+      }
+
+      const entries = fs.readdirSync(agentsBaseDir, { withFileTypes: true });
+      const agentDirs = entries.filter((e) => e.isDirectory());
+
+      if (agentDirs.length === 0) {
+        console.log('\n  No agents configured.\n');
+        return;
+      }
+
+      console.log('\n  Configured sub-agents:\n');
+      for (const dir of agentDirs) {
+        const configPath = path.join(agentsBaseDir, dir.name, 'config.json');
+        let config = {};
+        try {
+          config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        } catch {}
+
+        const status = config.enabled !== false ? '\u2705' : '\u274c';
+        const desc = config.description || 'No description';
+        console.log(`  ${status}  ${dir.name.padEnd(20)} ${desc}`);
+      }
+      console.log('');
+      break;
+    }
+
+    case 'create': {
+      const name = subArgs[0];
+      if (!name) {
+        console.error('\n  Usage: mantis-ai agents create <name>\n');
+        process.exit(1);
+      }
+
+      const agentDir = path.join(agentsBaseDir, name);
+      if (fs.existsSync(agentDir)) {
+        console.error(`\n  Agent "${name}" already exists.\n`);
+        process.exit(1);
+      }
+
+      fs.mkdirSync(agentDir, { recursive: true });
+
+      // Create config.json
+      const config = {
+        name,
+        description: `${name} specialist agent`,
+        tools: ['create_job', 'get_job_status'],
+        enabled: true,
+      };
+      fs.writeFileSync(
+        path.join(agentDir, 'config.json'),
+        JSON.stringify(config, null, 2) + '\n'
+      );
+
+      // Create AGENT.md
+      const agentMd = `You are ${name}, a specialized sub-agent.
+
+## Guidelines
+
+- Focus on your specific area of expertise
+- Use available tools when needed
+- Provide clear, structured responses
+
+## Current Date
+
+{{datetime}}
+`;
+      fs.writeFileSync(path.join(agentDir, 'AGENT.md'), agentMd);
+
+      console.log(`\n  Created agent: ${name}`);
+      console.log(`  Config: config/agents/${name}/config.json`);
+      console.log(`  Prompt: config/agents/${name}/AGENT.md`);
+      console.log('\n  Restart the server to activate.\n');
+      break;
+    }
+
+    case 'remove': {
+      const name = subArgs[0];
+      if (!name) {
+        console.error('\n  Usage: mantis-ai agents remove <name>\n');
+        process.exit(1);
+      }
+
+      const agentDir = path.join(agentsBaseDir, name);
+      if (!fs.existsSync(agentDir)) {
+        console.error(`\n  Agent "${name}" not found.\n`);
+        process.exit(1);
+      }
+
+      fs.rmSync(agentDir, { recursive: true, force: true });
+      console.log(`\n  Removed agent: ${name}\n`);
+      break;
+    }
+
+    default:
+      console.log(`
+  Usage: mantis-ai agents <subcommand>
+
+  Subcommands:
+    list                List configured sub-agents
+    create <name>       Scaffold a new sub-agent
+    remove <name>       Remove a sub-agent
+`);
+      if (subcommand) process.exit(1);
+  }
+}
+
 switch (command) {
   case 'init':
     await init();
@@ -552,6 +873,15 @@ switch (command) {
     break;
   case 'setup-telegram':
     setupTelegram();
+    break;
+  case 'setup-slack':
+    setupSlack();
+    break;
+  case 'setup-discord':
+    setupDiscord();
+    break;
+  case 'setup-whatsapp':
+    setupWhatsapp();
     break;
   case 'reset-auth':
     await resetAuth();
@@ -570,6 +900,12 @@ switch (command) {
     break;
   case 'set-var':
     await setVar(args[0], args[1]);
+    break;
+  case 'skills':
+    await skills(args[0], ...args.slice(1));
+    break;
+  case 'agents':
+    await agents(args[0], ...args.slice(1));
     break;
   default:
     printUsage();

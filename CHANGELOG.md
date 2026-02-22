@@ -4,9 +4,9 @@
 
 ### Drizzle Kit migrations
 
-Database schema changes are now managed by Drizzle Kit instead of hand-written SQL. The old `initDatabase()` with raw `CREATE TABLE` and `ALTER TABLE` statements has been replaced by `migrate()`, which applies versioned migration files from `drizzle/`. Migrations run automatically on server startup — users upgrading thepopebot get schema changes applied seamlessly without any manual steps.
+Database schema changes are now managed by Drizzle Kit instead of hand-written SQL. The old `initDatabase()` with raw `CREATE TABLE` and `ALTER TABLE` statements has been replaced by `migrate()`, which applies versioned migration files from `drizzle/`. Migrations run automatically on server startup — users upgrading mantis-ai get schema changes applied seamlessly without any manual steps.
 
-Migration files ship inside the npm package, so they resolve from `node_modules/thepopebot/drizzle/` at runtime regardless of the user's working directory.
+Migration files ship inside the npm package, so they resolve from `node_modules/mantis-ai/drizzle/` at runtime regardless of the user's working directory.
 
 **For package developers:** edit `lib/db/schema.js`, then run `npm run db:generate` to create a new migration file. Never write DDL SQL by hand.
 
@@ -16,13 +16,13 @@ Migration files ship inside the npm package, so they resolve from `node_modules/
 
 **Released: February 2026**
 
-thepopebot is now an installable NPM package. Instead of forking a repo and wiring everything together yourself, you run one command and get a fully configured AI agent project. This release replaces the old fork-based architecture entirely.
+Mantis AI is now an installable NPM package. Instead of forking a repo and wiring everything together yourself, you run one command and get a fully configured AI agent project. This release replaces the old fork-based architecture entirely.
 
 ---
 
 ### Install in seconds
 
-Run `npx thepopebot init` and you have a working project. The interactive setup wizard walks you through API keys, GitHub secrets, and Telegram configuration — no more copying `.env.example` files and hunting for documentation. Upgrade later with a single command or let GitHub Actions handle it automatically.
+Run `npx mantis-ai init` and you have a working project. The interactive setup wizard walks you through API keys, GitHub secrets, and Telegram configuration — no more copying `.env.example` files and hunting for documentation. Upgrade later with a single command or let GitHub Actions handle it automatically.
 
 ### Web chat interface
 
@@ -50,7 +50,7 @@ API keys are hashed with SHA-256 and verified with timing-safe comparison. Creat
 
 ### Auto-upgrades
 
-When a new version of thepopebot is published, a GitHub Actions workflow can open a PR to upgrade your project. Template files (workflows, Docker configs) are updated automatically. Your customizations in `config/` are never touched. You stay current without manual maintenance.
+When a new version of mantis-ai is published, a GitHub Actions workflow can open a PR to upgrade your project. Template files (workflows, Docker configs) are updated automatically. Your customizations in `config/` are never touched. You stay current without manual maintenance.
 
 ### Three ways to automate
 
@@ -76,7 +76,7 @@ All chats are stored in SQLite via Drizzle ORM. Browse history, resume old conve
 
 ### Infrastructure stays current
 
-GitHub Actions workflows, Docker configs, and other infrastructure files are managed by the package. When you upgrade thepopebot, `thepopebot init` scaffolds updated versions of these files. Use `thepopebot diff` to see what changed and `thepopebot reset` to restore any file to the package default.
+GitHub Actions workflows, Docker configs, and other infrastructure files are managed by the package. When you upgrade mantis-ai, `mantis-ai init` scaffolds updated versions of these files. Use `mantis-ai diff` to see what changed and `mantis-ai reset` to restore any file to the package default.
 
 ### Talk to your agent anywhere
 
@@ -89,11 +89,11 @@ A channel adapter pattern normalizes messages across platforms. Web chat and Tel
 This release replaces the old fork-based architecture entirely. The old `event_handler/` Express server is gone, but your configuration files carry over to the new project.
 
 **What's gone:**
-- Fork-and-modify workflow — replaced by `npx thepopebot init`
+- Fork-and-modify workflow — replaced by `npx mantis-ai init`
 - Express server in `event_handler/` — replaced by Next.js route handlers in the package
 - Single `.env` API key — replaced by database-backed key management
 - File-based JSON conversation history — replaced by SQLite database
 - Anthropic-only LLM support — replaced by multi-provider architecture
 - Manual deployment — replaced by Docker Compose with Traefik
 
-**To adopt the new architecture:** Run `npx thepopebot init` in a fresh directory and run the setup wizard. Then copy over your configuration files — `config/SOUL.md`, `config/EVENT_HANDLER.md`, `config/AGENT.md`, `config/CRONS.json`, `config/TRIGGERS.json`, and any custom `.md` files you created. Move your `.pi/skills/` directory and any cron/trigger shell scripts as well. Your agent's personality, scheduled jobs, and skills carry over — only the surrounding infrastructure changes.
+**To adopt the new architecture:** Run `npx mantis-ai init` in a fresh directory and run the setup wizard. Then copy over your configuration files — `config/SOUL.md`, `config/EVENT_HANDLER.md`, `config/AGENT.md`, `config/CRONS.json`, `config/TRIGGERS.json`, and any custom `.md` files you created. Move your `.pi/skills/` directory and any cron/trigger shell scripts as well. Your agent's personality, scheduled jobs, and skills carry over — only the surrounding infrastructure changes.

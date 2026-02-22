@@ -2,19 +2,19 @@
 
 ## Overview
 
-This is an autonomous AI agent powered by [thepopebot](https://github.com/stephengpope/thepopebot). It uses a **two-layer architecture**:
+This is an autonomous AI agent powered by [Mantis AI](https://github.com/maitrikpatel2025/mantis-ai). It uses a **two-layer architecture**:
 
 1. **Event Handler** — A Next.js server that orchestrates everything: web UI, Telegram chat, cron scheduling, webhook triggers, and job creation.
 2. **Docker Agent** — A container that runs the Pi coding agent for autonomous task execution. Each job gets its own branch, container, and PR.
 
-All core logic lives in the `thepopebot` npm package. This project is a scaffolded shell — thin Next.js wiring, user-editable configuration, GitHub Actions workflows, and Docker files. When `thepopebot` is updated, core logic updates automatically via `npm update`; scaffolded files are managed separately via `npx thepopebot init`.
+All core logic lives in the `mantis-ai` npm package. This project is a scaffolded shell — thin Next.js wiring, user-editable configuration, GitHub Actions workflows, and Docker files. When `mantis-ai` is updated, core logic updates automatically via `npm update`; scaffolded files are managed separately via `npx mantis-ai init`.
 
 ## Directory Structure
 
 ```
 project-root/
 ├── CLAUDE.md                          # This file (project documentation)
-├── next.config.mjs                    # Next.js config (wraps withThepopebot())
+├── next.config.mjs                    # Next.js config (wraps withMantis())
 ├── instrumentation.js                 # Server startup hook (re-exports from package)
 ├── middleware.js                       # Auth middleware (re-exports from package)
 ├── postcss.config.mjs                 # PostCSS / Tailwind CSS config
@@ -41,7 +41,7 @@ project-root/
 │   │   └── secrets/page.js           # API key management
 │   ├── stream/chat/route.js           # Chat streaming endpoint (session auth)
 │   ├── api/
-│   │   ├── [...thepopebot]/route.js   # Catch-all API route (re-exports from package)
+│   │   ├── [...mantis]/route.js   # Catch-all API route (re-exports from package)
 │   │   └── auth/[...nextauth]/route.js # NextAuth route handler
 │   └── components/                    # Client-side components
 │       ├── theme-provider.jsx         # NextThemesProvider wrapper
@@ -75,7 +75,7 @@ project-root/
 │   │   ├── Dockerfile                 # Node.js 22, Pi agent, Chrome deps, GitHub CLI
 │   │   └── entrypoint.sh             # Clone repo, build SYSTEM.md, run Pi, create PR
 │   └── event-handler/                 # Event handler container
-│       ├── Dockerfile                 # Node.js 22, PM2, thepopebot package
+│       ├── Dockerfile                 # Node.js 22, PM2, mantis-ai package
 │       └── ecosystem.config.cjs       # PM2 config (Next.js on port 80)
 │
 ├── .pi/
@@ -98,7 +98,7 @@ project-root/
 ├── cron/                              # Working directory for command-type cron actions
 ├── triggers/                          # Working directory for command-type trigger actions
 ├── logs/                              # Per-job output (logs/<JOB_ID>/job.md + session .jsonl)
-└── data/                              # SQLite database (data/thepopebot.sqlite)
+└── data/                              # SQLite database (data/mantis.sqlite)
 ```
 
 ## Two-Layer Architecture
@@ -137,7 +137,7 @@ project-root/
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Event Handler** (this Next.js server): Receives requests (web UI, Telegram, webhooks, cron timers), creates jobs by pushing a `job/<uuid>` branch to GitHub, and manages the web interface. All core logic is in the `thepopebot` npm package.
+**Event Handler** (this Next.js server): Receives requests (web UI, Telegram, webhooks, cron timers), creates jobs by pushing a `job/<uuid>` branch to GitHub, and manages the web interface. All core logic is in the `mantis-ai` npm package.
 
 **Docker Agent**: A container spun up by GitHub Actions (`run-job.yml`) that clones the job branch, runs the Pi coding agent with the job prompt, commits results, and opens a PR. Runs autonomously — no user interaction needed.
 
@@ -264,7 +264,7 @@ Defined in `config/TRIGGERS.json`, loaded at server startup. Triggers fire on PO
 
 ## API Endpoints
 
-All API routes are under `/api/`, handled by the catch-all route at `app/api/[...thepopebot]/route.js`.
+All API routes are under `/api/`, handled by the catch-all route at `app/api/[...mantis]/route.js`.
 
 | Endpoint | Method | Auth | Purpose |
 |----------|--------|------|---------|
@@ -279,7 +279,7 @@ All API routes are under `/api/`, handled by the catch-all route at `app/api/[..
 
 ## Web Interface
 
-Accessible after login at `APP_URL`. Page shells live in `app/` but all components are imported from the `thepopebot` npm package.
+Accessible after login at `APP_URL`. Page shells live in `app/` but all components are imported from the `mantis-ai` npm package.
 
 | Route | Page | Purpose |
 |-------|------|---------|
@@ -304,7 +304,7 @@ Accessible after login at `APP_URL`. Page shells live in `app/` but all componen
 
 ## Database
 
-SQLite via Drizzle ORM at `data/thepopebot.sqlite` (override with `DATABASE_PATH` env var). Auto-initialized and auto-migrated on server startup.
+SQLite via Drizzle ORM at `data/mantis.sqlite` (override with `DATABASE_PATH` env var). Auto-initialized and auto-migrated on server startup.
 
 | Table | Purpose |
 |-------|---------|
@@ -323,7 +323,7 @@ SQLite via Drizzle ORM at `data/thepopebot.sqlite` (override with `DATABASE_PATH
 |----------|---------|---------|
 | `run-job.yml` | `job/*` branch created | Runs the Docker agent container with the job prompt |
 | `rebuild-event-handler.yml` | Push to `main` | Fast path (build + PM2 reload) or Docker restart if package version changed |
-| `upgrade-event-handler.yml` | Manual `workflow_dispatch` | Creates a PR to upgrade the thepopebot package |
+| `upgrade-event-handler.yml` | Manual `workflow_dispatch` | Creates a PR to upgrade the mantis-ai package |
 | `build-image.yml` | `docker/job/**` changes | Builds and pushes job Docker image to GHCR (only if `JOB_IMAGE_URL` is `ghcr.io/*`) |
 | `auto-merge.yml` | Job PR opened | Squash-merges if `AUTO_MERGE` is not `"false"` and all changes are within `ALLOWED_PATHS` |
 | `notify-pr-complete.yml` | After `auto-merge.yml` | Gathers job data and sends notification to event handler |
@@ -348,8 +348,8 @@ SQLite via Drizzle ORM at `data/thepopebot.sqlite` (override with `DATABASE_PATH
 | `APP_URL` | Public URL for the event handler | — (required) |
 | `AUTO_MERGE` | Set to `"false"` to disable auto-merge of job PRs | Enabled |
 | `ALLOWED_PATHS` | Comma-separated path prefixes for auto-merge (e.g., `/logs`). Use `/` for all paths. | `/logs` |
-| `JOB_IMAGE_URL` | Docker image for job agent. GHCR URLs trigger automatic builds via `build-image.yml`. | Default thepopebot image |
-| `EVENT_HANDLER_IMAGE_URL` | Docker image for event handler | Default thepopebot image |
+| `JOB_IMAGE_URL` | Docker image for job agent. GHCR URLs trigger automatic builds via `build-image.yml`. | Default mantis-ai image |
+| `EVENT_HANDLER_IMAGE_URL` | Docker image for event handler | Default mantis-ai image |
 | `RUNS_ON` | GitHub Actions runner label (e.g., `self-hosted`) | `ubuntu-latest` |
 | `LLM_PROVIDER` | LLM provider for Docker agent (`anthropic`, `openai`, `google`) | `anthropic` |
 | `LLM_MODEL` | LLM model name for Docker agent | Provider default |
@@ -399,7 +399,7 @@ SQLite via Drizzle ORM at `data/thepopebot.sqlite` (override with `DATABASE_PATH
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `AUTH_TRUST_HOST` | Trust host header behind reverse proxy (set `true` for Docker/Traefik) | For reverse proxy |
-| `DATABASE_PATH` | Override SQLite database location | No (default: `data/thepopebot.sqlite`) |
+| `DATABASE_PATH` | Override SQLite database location | No (default: `data/mantis.sqlite`) |
 
 ## Pi Skills
 
@@ -502,29 +502,29 @@ Config markdown files support includes and built-in variables (processed by the 
 
 | Command | Description |
 |---------|-------------|
-| `npx thepopebot init` | Scaffold or update project — creates missing files, auto-updates managed files, reports drifted user files |
-| `npx thepopebot setup` | Interactive setup wizard (API keys, GitHub secrets, Telegram bot) |
-| `npx thepopebot setup-telegram` | Reconfigure Telegram webhook only |
-| `npx thepopebot reset [file]` | Restore a file to the package default (no args lists available templates) |
-| `npx thepopebot diff [file]` | Show differences between project files and package templates |
-| `npx thepopebot reset-auth` | Regenerate AUTH_SECRET (invalidates all sessions) |
-| `npx thepopebot set-agent-secret <KEY> [VALUE]` | Set a GitHub secret with `AGENT_` prefix and update `.env` |
-| `npx thepopebot set-agent-llm-secret <KEY> [VALUE]` | Set a GitHub secret with `AGENT_LLM_` prefix |
-| `npx thepopebot set-var <KEY> [VALUE]` | Set a GitHub repository variable |
+| `npx mantis-ai init` | Scaffold or update project — creates missing files, auto-updates managed files, reports drifted user files |
+| `npx mantis-ai setup` | Interactive setup wizard (API keys, GitHub secrets, Telegram bot) |
+| `npx mantis-ai setup-telegram` | Reconfigure Telegram webhook only |
+| `npx mantis-ai reset [file]` | Restore a file to the package default (no args lists available templates) |
+| `npx mantis-ai diff [file]` | Show differences between project files and package templates |
+| `npx mantis-ai reset-auth` | Regenerate AUTH_SECRET (invalidates all sessions) |
+| `npx mantis-ai set-agent-secret <KEY> [VALUE]` | Set a GitHub secret with `AGENT_` prefix and update `.env` |
+| `npx mantis-ai set-agent-llm-secret <KEY> [VALUE]` | Set a GitHub secret with `AGENT_LLM_` prefix |
+| `npx mantis-ai set-var <KEY> [VALUE]` | Set a GitHub repository variable |
 
-### Updating thepopebot
+### Updating mantis-ai
 
 ```
-1. npm update thepopebot         — updates the package
-2. npx thepopebot init           — auto-updates managed files, reports drifted user files
-3. npx thepopebot diff <file>    — review what changed in a user-editable file
-4. npx thepopebot reset <file>   — accept the new template, or manually merge
+1. npm update mantis-ai         — updates the package
+2. npx mantis-ai init           — auto-updates managed files, reports drifted user files
+3. npx mantis-ai diff <file>    — review what changed in a user-editable file
+4. npx mantis-ai reset <file>   — accept the new template, or manually merge
 ```
 
 - **Managed files** (workflows, docker-compose, event-handler Dockerfile) are **auto-updated** to match the package.
 - **User-editable files** (config, app pages, job Dockerfile) are **never overwritten**. Drifted files are reported.
 
-Use `npx thepopebot init --no-managed` to skip auto-updates of managed files.
+Use `npx mantis-ai init --no-managed` to skip auto-updates of managed files.
 
 ## Deployment
 

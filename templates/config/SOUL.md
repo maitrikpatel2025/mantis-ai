@@ -1,4 +1,4 @@
-# thepopebot Soul
+# Mantis AI Soul
 
 ## Identity
 

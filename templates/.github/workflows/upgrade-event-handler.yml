@@ -12,9 +12,9 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 20
     steps:
-      - name: Upgrade thepopebot
+      - name: Upgrade mantis-ai
         run: |
-          docker exec thepopebot-event-handler bash -c '
+          docker exec mantis-event-handler bash -c '
             export GH_TOKEN=$(grep "^GH_TOKEN=" /app/.env | cut -d= -f2-)
             echo "${GH_TOKEN}" | gh auth login --with-token
             gh auth setup-git
@@ -24,24 +24,24 @@ jobs:
             git clone --depth 1 "$REPO_URL" "$WORK_DIR"
             cd "$WORK_DIR"
 
-            git config user.name "thepopebot"
-            git config user.email "thepopebot@users.noreply.github.com"
+            git config user.name "mantis-ai"
+            git config user.email "mantis-ai@users.noreply.github.com"
 
             npm install --omit=dev
-            OLD_VERSION=$(node -p "require(\"./node_modules/thepopebot/package.json\").version")
-            npm update thepopebot --prefer-online
-            NEW_VERSION=$(node -p "require(\"./node_modules/thepopebot/package.json\").version")
+            OLD_VERSION=$(node -p "require(\"./node_modules/mantis-ai/package.json\").version")
+            npm update mantis-ai --prefer-online
+            NEW_VERSION=$(node -p "require(\"./node_modules/mantis-ai/package.json\").version")
 
             if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
-              BRANCH="upgrade/thepopebot-${NEW_VERSION}-$(date +%s)"
+              BRANCH="upgrade/mantis-ai-${NEW_VERSION}-$(date +%s)"
               git add -A
               git checkout -b "$BRANCH"
-              git commit -m "chore: upgrade thepopebot to $NEW_VERSION"
+              git commit -m "chore: upgrade mantis-ai to $NEW_VERSION"
               git push origin "$BRANCH"
-              gh pr create --title "chore: upgrade thepopebot" --body "Automated upgrade via upgrade-event-handler workflow." --base main --head "$BRANCH"
+              gh pr create --title "chore: upgrade mantis-ai" --body "Automated upgrade via upgrade-event-handler workflow." --base main --head "$BRANCH"
               gh pr merge "$BRANCH" --squash --auto --delete-branch
             else
-              echo "No changes — thepopebot is already up to date."
+              echo "No changes — mantis-ai is already up to date."
             fi
 
             rm -rf "$WORK_DIR"
