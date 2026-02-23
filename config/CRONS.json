@@ -1,10 +1,10 @@
 [
   {
     "name": "heartbeat",
-    "schedule": "*/30 * * * *",
+    "schedule": "*/10 * * * *",
     "type": "agent",
     "job": "Read the file at config/HEARTBEAT.md and complete the tasks described there.",
-    "enabled": false
+    "enabled": true
   },
   {
     "name": "daily-check",
