@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { SettingsLayout } from './settings-layout.js';
 import { RefreshIcon, SpinnerIcon } from './icons.js';
 
 function AgentCard({ agent }) {
@@ -70,7 +69,6 @@ export function AgentsPage({ session, getAgentsList }) {
   }, [loadAgents]);
 
   return (
-    <SettingsLayout session={session}>
       <div className="space-y-6">
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -116,6 +114,5 @@ export function AgentsPage({ session, getAgentsList }) {
           </div>
         </div>
       </div>
-    </SettingsLayout>
   );
 }

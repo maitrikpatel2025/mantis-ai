@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { SettingsLayout } from './settings-layout.js';
 import { SearchIcon, RefreshIcon, SpinnerIcon, TrashIcon, ArrowUpCircleIcon } from './icons.js';
 
 function SkillCard({ skill, onToggle, onRemove }) {
@@ -277,7 +276,6 @@ export function SkillsPage({
   const installedNames = new Set(skills.map((s) => s.name));
 
   return (
-    <SettingsLayout session={session}>
       <div className="space-y-6">
         {/* Status message */}
         {statusMessage && (
@@ -390,6 +388,5 @@ export function SkillsPage({
           )}
         </div>
       </div>
-    </SettingsLayout>
   );
 }

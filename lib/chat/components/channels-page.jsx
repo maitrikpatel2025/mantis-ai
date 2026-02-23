@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { SettingsLayout } from './settings-layout.js';
 import { RefreshIcon, SpinnerIcon } from './icons.js';
 
 const CHANNEL_TYPE_LABELS = {
@@ -66,7 +65,6 @@ export function ChannelsPage({ session, getChannelsList }) {
   }, [loadChannels]);
 
   return (
-    <SettingsLayout session={session}>
       <div className="space-y-6">
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -107,6 +105,5 @@ export function ChannelsPage({ session, getChannelsList }) {
           </div>
         </div>
       </div>
-    </SettingsLayout>
   );
 }
