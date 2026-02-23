@@ -1,0 +1,46 @@
+[
+  {
+    "id": "telegram-default",
+    "type": "telegram",
+    "enabled": true,
+    "webhook_path": "/telegram/webhook",
+    "config": {
+      "bot_token_env": "TELEGRAM_BOT_TOKEN",
+      "webhook_secret_env": "TELEGRAM_WEBHOOK_SECRET",
+      "chat_id_env": "TELEGRAM_CHAT_ID"
+    }
+  },
+  {
+    "id": "slack-main",
+    "type": "slack",
+    "enabled": false,
+    "webhook_path": "/slack/webhook",
+    "config": {
+      "bot_token_env": "SLACK_BOT_TOKEN",
+      "signing_secret_env": "SLACK_SIGNING_SECRET"
+    }
+  },
+  {
+    "id": "discord-main",
+    "type": "discord",
+    "enabled": false,
+    "webhook_path": "/discord/webhook",
+    "config": {
+      "bot_token_env": "DISCORD_BOT_TOKEN",
+      "application_id_env": "DISCORD_APPLICATION_ID",
+      "public_key_env": "DISCORD_PUBLIC_KEY"
+    }
+  },
+  {
+    "id": "whatsapp-main",
+    "type": "whatsapp",
+    "enabled": false,
+    "webhook_path": "/whatsapp/webhook",
+    "config": {
+      "phone_number_id_env": "WHATSAPP_PHONE_NUMBER_ID",
+      "access_token_env": "WHATSAPP_ACCESS_TOKEN",
+      "verify_token_env": "WHATSAPP_VERIFY_TOKEN",
+      "app_secret_env": "WHATSAPP_APP_SECRET"
+    }
+  }
+]

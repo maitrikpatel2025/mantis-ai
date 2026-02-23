@@ -1,0 +1,7 @@
+{
+  "registry": "https://raw.githubusercontent.com/maitrikpatel2025/mantis-ai-skills/main/registry.json",
+  "installed": {
+    "brave-search": { "version": "1.0.0", "source": "bundled", "enabled": true },
+    "browser-tools": { "version": "1.0.0", "source": "bundled", "enabled": true }
+  }
+}
