@@ -1,0 +1,1 @@
+Create a file called hello.md in the logs directory with a simple greeting message
