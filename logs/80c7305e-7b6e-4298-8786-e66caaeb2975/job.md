@@ -1,0 +1,1 @@
+Search the web for current weather conditions in Claremont, California. Get temperature, conditions (sunny/cloudy/rainy/etc), humidity, and any weather alerts or forecasts for today. Save the weather report as a markdown file at `data/weather-claremont-ca.md` with the current date and time.
