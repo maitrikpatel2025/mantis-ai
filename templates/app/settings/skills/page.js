@@ -1,6 +1,6 @@
 import { auth } from 'mantis-ai/auth';
 import { SkillsPage } from 'mantis-ai/chat';
-import { getSkillsList, searchSkillsAction, installSkillAction, toggleSkillAction } from 'mantis-ai/chat/actions';
+import { getSkillsList, searchSkillsAction, installSkillAction, toggleSkillAction, removeSkillAction, checkSkillUpdatesAction } from 'mantis-ai/chat/actions';
 
 export default async function Page() {
   const session = await auth();
@@ -11,6 +11,8 @@ export default async function Page() {
       searchSkillsAction={searchSkillsAction}
       installSkillAction={installSkillAction}
       toggleSkillAction={toggleSkillAction}
+      removeSkillAction={removeSkillAction}
+      checkSkillUpdatesAction={checkSkillUpdatesAction}
     />
   );
 }
