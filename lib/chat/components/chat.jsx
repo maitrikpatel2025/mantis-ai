@@ -8,18 +8,31 @@ import { ChatInput } from './chat-input.js';
 import { ChatHeader } from './chat-header.js';
 import { Greeting } from './greeting.js';
 
-export function Chat({ chatId, initialMessages = [] }) {
+export function Chat({ chatId, initialMessages = [], getModelsCatalog }) {
   const [input, setInput] = useState('');
   const [files, setFiles] = useState([]);
+  const [model, setModel] = useState(null);
+  const [modelsCatalog, setModelsCatalog] = useState(null);
   const hasNavigated = useRef(false);
+
+  // Load models catalog on mount
+  useEffect(() => {
+    if (getModelsCatalog) {
+      getModelsCatalog().then((catalog) => {
+        if (catalog?.available?.length > 0) {
+          setModelsCatalog(catalog);
+        }
+      }).catch(() => {});
+    }
+  }, [getModelsCatalog]);
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: '/stream/chat',
-        body: { chatId },
+        body: { chatId, model },
       }),
-    [chatId]
+    [chatId, model]
   );
 
   const {
@@ -123,6 +136,9 @@ export function Chat({ chatId, initialMessages = [] }) {
                 stop={stop}
                 files={files}
                 setFiles={setFiles}
+                model={model}
+                setModel={setModel}
+                modelsCatalog={modelsCatalog}
               />
             </div>
           </div>
@@ -145,6 +161,9 @@ export function Chat({ chatId, initialMessages = [] }) {
             stop={stop}
             files={files}
             setFiles={setFiles}
+            model={model}
+            setModel={setModel}
+            modelsCatalog={modelsCatalog}
           />
         </>
       )}

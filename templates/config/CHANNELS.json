@@ -8,6 +8,10 @@
       "bot_token_env": "TELEGRAM_BOT_TOKEN",
       "webhook_secret_env": "TELEGRAM_WEBHOOK_SECRET",
       "chat_id_env": "TELEGRAM_CHAT_ID"
+    },
+    "policies": {
+      "dm": "open",
+      "group": "open"
     }
   },
   {
@@ -18,6 +22,22 @@
     "config": {
       "bot_token_env": "SLACK_BOT_TOKEN",
       "signing_secret_env": "SLACK_SIGNING_SECRET"
+    },
+    "agent": "researcher"
+  },
+  {
+    "id": "slack-support",
+    "type": "slack",
+    "enabled": false,
+    "webhook_path": "/slack/support-webhook",
+    "config": {
+      "bot_token_env": "SLACK_SUPPORT_BOT_TOKEN",
+      "signing_secret_env": "SLACK_SUPPORT_SIGNING_SECRET"
+    },
+    "policies": {
+      "dm": "allowlist",
+      "group": "disabled",
+      "allowFrom": []
     }
   },
   {

@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ClockIcon, SpinnerIcon, ChevronDownIcon } from './icons.js';
-import { getSwarmConfig } from '../actions.js';
+import { ClockIcon, SpinnerIcon, ChevronDownIcon, PlusIcon, PencilIcon, TrashIcon } from './icons.js';
+import { getSwarmConfig, createCron, updateCron, deleteCron, toggleCronEnabled } from '../actions.js';
+import { Modal } from './ui/modal.js';
+import { ConfirmDialog } from './ui/confirm-dialog.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utilities
@@ -14,21 +16,18 @@ function describeCron(schedule) {
 
   const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
 
-  // Every N minutes
   if (minute.startsWith('*/') && hour === '*' && dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
     const n = parseInt(minute.slice(2), 10);
     if (n === 1) return 'Every minute';
     return `Every ${n} minutes`;
   }
 
-  // Every N hours
   if (hour.startsWith('*/') && dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
     const n = parseInt(hour.slice(2), 10);
     if (n === 1) return 'Every hour';
     return `Every ${n} hours`;
   }
 
-  // Specific time daily
   if (minute !== '*' && hour !== '*' && !hour.includes('/') && !minute.includes('/') && dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
     const h = parseInt(hour, 10);
     const m = parseInt(minute, 10);
@@ -37,7 +36,6 @@ function describeCron(schedule) {
     return `Daily at ${displayH}:${String(m).padStart(2, '0')} ${period}`;
   }
 
-  // Specific time on specific weekdays
   if (minute !== '*' && hour !== '*' && dayOfMonth === '*' && month === '*' && dayOfWeek !== '*') {
     const dayNames = { '0': 'Sun', '1': 'Mon', '2': 'Tue', '3': 'Wed', '4': 'Thu', '5': 'Fri', '6': 'Sat' };
     const days = dayOfWeek.split(',').map(d => dayNames[d] || d).join(', ');
@@ -68,6 +66,146 @@ function sortByType(items) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Cron Form Modal
+// ─────────────────────────────────────────────────────────────────────────────
+
+const EMPTY_FORM = { name: '', schedule: '', type: 'agent', job: '', command: '', url: '', method: 'POST', enabled: true };
+
+function CronFormModal({ open, onClose, onSubmit, initial, title }) {
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setForm(initial ? { ...EMPTY_FORM, ...initial } : EMPTY_FORM);
+      setError('');
+    }
+  }, [open]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSaving(true);
+    const result = await onSubmit(form);
+    setSaving(false);
+    if (result?.success) {
+      onClose();
+    } else {
+      setError(result?.message || 'Failed to save');
+    }
+  };
+
+  const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
+
+  return (
+    <Modal open={open} onClose={onClose} title={title || 'Add Cron Job'}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Name</label>
+          <input
+            type="text"
+            value={form.name}
+            onChange={(e) => set('name', e.target.value)}
+            className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm"
+            required
+          />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Schedule (cron expression)</label>
+          <input
+            type="text"
+            value={form.schedule}
+            onChange={(e) => set('schedule', e.target.value)}
+            placeholder="*/30 * * * *"
+            className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm font-mono"
+            required
+          />
+          {form.schedule && (
+            <p className="text-xs text-muted-foreground mt-1">{describeCron(form.schedule)}</p>
+          )}
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Type</label>
+          <select
+            value={form.type}
+            onChange={(e) => set('type', e.target.value)}
+            className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm"
+          >
+            <option value="agent">Agent</option>
+            <option value="command">Command</option>
+            <option value="webhook">Webhook</option>
+          </select>
+        </div>
+
+        {form.type === 'agent' && (
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Job prompt</label>
+            <textarea
+              value={form.job || ''}
+              onChange={(e) => set('job', e.target.value)}
+              className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm font-mono min-h-[80px]"
+            />
+          </div>
+        )}
+
+        {form.type === 'command' && (
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Command</label>
+            <input
+              type="text"
+              value={form.command || ''}
+              onChange={(e) => set('command', e.target.value)}
+              className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm font-mono"
+            />
+          </div>
+        )}
+
+        {form.type === 'webhook' && (
+          <>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">URL</label>
+              <input
+                type="url"
+                value={form.url || ''}
+                onChange={(e) => set('url', e.target.value)}
+                className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Method</label>
+              <select
+                value={form.method || 'POST'}
+                onChange={(e) => set('method', e.target.value)}
+                className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm"
+              >
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+              </select>
+            </div>
+          </>
+        )}
+
+        {error && <p className="text-xs text-red-500">{error}</p>}
+
+        <div className="flex justify-end gap-2 mt-2">
+          <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm rounded-md border hover:bg-muted">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-3 py-1.5 text-sm rounded-md bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Group Header
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -84,7 +222,7 @@ function GroupHeader({ label, count }) {
 // Cron Card
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CronCard({ cron }) {
+function CronCard({ cron, index, onEdit, onDelete, onToggle }) {
   const [expanded, setExpanded] = useState(false);
   const type = cron.type || 'agent';
   const disabled = cron.enabled === false;
@@ -112,13 +250,20 @@ function CronCard({ cron }) {
           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${typeBadgeStyles[type] || typeBadgeStyles.agent}`}>
             {type}
           </span>
-          <span
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggle(index); }}
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium cursor-pointer ${
               disabled ? 'bg-muted text-muted-foreground' : 'bg-green-500/10 text-green-500'
             }`}
           >
             {disabled ? 'disabled' : 'enabled'}
-          </span>
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); onEdit(index); }} className="p-1 rounded hover:bg-muted text-muted-foreground" title="Edit">
+            <PencilIcon size={12} />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); onDelete(index); }} className="p-1 rounded hover:bg-muted text-muted-foreground" title="Delete">
+            <TrashIcon size={12} />
+          </button>
           <span className={`transition-transform ${expanded ? 'rotate-180' : ''}`}>
             <ChevronDownIcon size={14} />
           </span>
@@ -174,26 +319,67 @@ function CronCard({ cron }) {
 export function CronsPage() {
   const [crons, setCrons] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editIndex, setEditIndex] = useState(null);
+  const [deleteIndex, setDeleteIndex] = useState(null);
 
-  useEffect(() => {
+  const reload = () => {
     getSwarmConfig()
       .then((data) => {
         if (data?.crons) setCrons(data.crons);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { reload(); }, []);
+
+  const handleCreate = async (data) => {
+    const result = await createCron(data);
+    if (result.success) reload();
+    return result;
+  };
+
+  const handleEdit = async (data) => {
+    const result = await updateCron(editIndex, data);
+    if (result.success) reload();
+    return result;
+  };
+
+  const handleDelete = async () => {
+    await deleteCron(deleteIndex);
+    setDeleteIndex(null);
+    reload();
+  };
+
+  const handleToggle = async (index) => {
+    await toggleCronEnabled(index);
+    reload();
+  };
 
   const enabled = sortByType(crons.filter((c) => c.enabled !== false));
   const disabled = sortByType(crons.filter((c) => c.enabled === false));
 
+  // Map sorted items back to their original index
+  const getOriginalIndex = (cron) => crons.indexOf(cron);
+
   return (
     <>
-      {!loading && (
-        <p className="text-sm text-muted-foreground mb-4">
-          {crons.length} job{crons.length !== 1 ? 's' : ''} configured, {enabled.length} enabled
-        </p>
-      )}
+      {/* Header with Add button */}
+      <div className="flex items-center justify-between mb-4">
+        {!loading && (
+          <p className="text-sm text-muted-foreground">
+            {crons.length} job{crons.length !== 1 ? 's' : ''} configured, {enabled.length} enabled
+          </p>
+        )}
+        <button
+          onClick={() => { setEditIndex(null); setFormOpen(true); }}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-foreground text-background hover:bg-foreground/90"
+        >
+          <PlusIcon size={14} />
+          Add Cron
+        </button>
+      </div>
 
       {loading ? (
         <div className="flex flex-col gap-3">
@@ -208,7 +394,7 @@ export function CronsPage() {
           </div>
           <p className="text-sm font-medium mb-1">No cron jobs configured</p>
           <p className="text-xs text-muted-foreground max-w-sm">
-            Add scheduled jobs by editing <span className="font-mono">config/CRONS.json</span> in your project.
+            Click "Add Cron" to create your first scheduled job.
           </p>
         </div>
       ) : (
@@ -217,7 +403,14 @@ export function CronsPage() {
             <>
               <GroupHeader label="Enabled" count={enabled.length} />
               {enabled.map((cron, i) => (
-                <CronCard key={`enabled-${i}`} cron={cron} />
+                <CronCard
+                  key={`enabled-${i}`}
+                  cron={cron}
+                  index={getOriginalIndex(cron)}
+                  onEdit={(idx) => { setEditIndex(idx); setFormOpen(true); }}
+                  onDelete={(idx) => setDeleteIndex(idx)}
+                  onToggle={handleToggle}
+                />
               ))}
             </>
           )}
@@ -225,12 +418,38 @@ export function CronsPage() {
             <>
               <GroupHeader label="Disabled" count={disabled.length} />
               {disabled.map((cron, i) => (
-                <CronCard key={`disabled-${i}`} cron={cron} />
+                <CronCard
+                  key={`disabled-${i}`}
+                  cron={cron}
+                  index={getOriginalIndex(cron)}
+                  onEdit={(idx) => { setEditIndex(idx); setFormOpen(true); }}
+                  onDelete={(idx) => setDeleteIndex(idx)}
+                  onToggle={handleToggle}
+                />
               ))}
             </>
           )}
         </div>
       )}
+
+      {/* Create / Edit Modal */}
+      <CronFormModal
+        open={formOpen}
+        onClose={() => { setFormOpen(false); setEditIndex(null); }}
+        onSubmit={editIndex !== null ? handleEdit : handleCreate}
+        initial={editIndex !== null ? crons[editIndex] : null}
+        title={editIndex !== null ? 'Edit Cron Job' : 'Add Cron Job'}
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={deleteIndex !== null}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteIndex(null)}
+        title="Delete cron job?"
+        description={deleteIndex !== null ? `This will permanently remove "${crons[deleteIndex]?.name}".` : ''}
+        confirmLabel="Delete"
+      />
     </>
   );
 }

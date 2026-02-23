@@ -4,7 +4,7 @@ import { setWebhook } from '../lib/tools/telegram.js';
 import { getJobStatus } from '../lib/tools/github.js';
 import { getTelegramAdapter } from '../lib/channels/index.js';
 import { getChannelRegistry } from '../lib/channels/registry.js';
-import { chat, summarizeJob } from '../lib/ai/index.js';
+import { chat, chatWithAgent, summarizeJob } from '../lib/ai/index.js';
 import { createNotification } from '../lib/db/notifications.js';
 import { loadTriggers } from '../lib/triggers.js';
 import { verifyApiKey } from '../lib/db/api-keys.js';
@@ -170,7 +170,7 @@ async function handleChannelWebhook(request, routePath) {
   }
 
   // Process message asynchronously (don't block the webhook response)
-  processChannelMessage(adapter, normalized, id).catch((err) => {
+  processChannelMessage(adapter, normalized, id, match.config).catch((err) => {
     console.error(`[${id}] Failed to process message:`, err);
   });
 
@@ -180,21 +180,24 @@ async function handleChannelWebhook(request, routePath) {
 /**
  * Process a normalized message through the AI layer with channel UX.
  * Message persistence is handled centrally by the AI layer.
+ * If channelConfig.agent is set, routes to that sub-agent instead of the main agent.
  * @param {import('../lib/channels/base.js').ChannelAdapter} adapter
  * @param {object} normalized
  * @param {string} channelId - Channel identifier for userId (e.g., 'telegram', 'slack-main')
+ * @param {object} [channelConfig] - Channel config from CHANNELS.json
  */
-async function processChannelMessage(adapter, normalized, channelId) {
+async function processChannelMessage(adapter, normalized, channelId, channelConfig) {
   await adapter.acknowledge(normalized.metadata);
   const stopIndicator = adapter.startProcessingIndicator(normalized.metadata);
 
   try {
-    const response = await chat(
-      normalized.threadId,
-      normalized.text,
-      normalized.attachments,
-      { userId: channelId, chatTitle: channelId }
-    );
+    const agentName = channelConfig?.agent;
+    const chatOptions = { userId: channelId, chatTitle: channelId };
+
+    const response = agentName
+      ? await chatWithAgent(agentName, normalized.threadId, normalized.text, normalized.attachments, chatOptions)
+      : await chat(normalized.threadId, normalized.text, normalized.attachments, chatOptions);
+
     await adapter.sendResponse(normalized.threadId, response, normalized.metadata);
   } catch (err) {
     console.error('Failed to process message with AI:', err);

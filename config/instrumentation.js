@@ -38,6 +38,10 @@ export async function register() {
   const { initDatabase } = await import('../lib/db/index.js');
   initDatabase();
 
+  // Intercept console for log viewer
+  const { interceptConsole } = await import('../lib/logs/buffer.js');
+  interceptConsole();
+
   // Initialize channel registry
   const { initChannelRegistry } = await import('../lib/channels/registry.js');
   await initChannelRegistry();

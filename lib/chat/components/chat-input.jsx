@@ -37,7 +37,69 @@ function getEffectiveType(file) {
   return extMap[ext] || file.type || 'text/plain';
 }
 
-export function ChatInput({ input, setInput, onSubmit, status, stop, files, setFiles }) {
+function ModelSelector({ model, setModel, catalog }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  if (!catalog?.available?.length) return null;
+
+  const currentLabel = model
+    ? catalog.available.find((m) => m.id === model)?.label || model
+    : 'Default';
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 0 0-4 4v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-2V6a4 4 0 0 0-4-4z"/></svg>
+        {currentLabel}
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      {open && (
+        <div className="absolute bottom-full left-0 mb-1 w-48 rounded-lg border border-border bg-background shadow-lg z-50">
+          <button
+            type="button"
+            onClick={() => { setModel(null); setOpen(false); }}
+            className={cn(
+              'w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors first:rounded-t-lg',
+              !model && 'text-foreground font-medium'
+            )}
+          >
+            Default (env)
+          </button>
+          {catalog.available.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => { setModel(m.id); setOpen(false); }}
+              className={cn(
+                'w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors last:rounded-b-lg',
+                model === m.id && 'text-foreground font-medium'
+              )}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ChatInput({ input, setInput, onSubmit, status, stop, files, setFiles, model, setModel, modelsCatalog }) {
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -172,6 +234,9 @@ export function ChatInput({ input, setInput, onSubmit, status, stop, files, setF
             >
               <PaperclipIcon size={16} />
             </button>
+
+            {/* Model selector */}
+            <ModelSelector model={model} setModel={setModel} catalog={modelsCatalog} />
 
             <input
               ref={fileInputRef}

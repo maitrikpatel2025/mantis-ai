@@ -5,7 +5,8 @@ import { AppSidebar } from './app-sidebar.js';
 import { Chat } from './chat.js';
 import { SidebarProvider, SidebarInset } from './ui/sidebar.js';
 import { ChatNavProvider } from './chat-nav-context.js';
-import { getChatMessages } from '../actions.js';
+import { UpdateBanner } from './update-banner.js';
+import { getChatMessages, getModelsCatalog } from '../actions.js';
 
 /**
  * Main chat page component.
@@ -85,11 +86,13 @@ export function ChatPage({ session, needsSetup, chatId }) {
       <SidebarProvider>
         <AppSidebar user={session.user} />
         <SidebarInset>
+          <UpdateBanner />
           {resolvedChatId && (
             <Chat
               key={resolvedChatId}
               chatId={resolvedChatId}
               initialMessages={initialMessages}
+              getModelsCatalog={getModelsCatalog}
             />
           )}
         </SidebarInset>

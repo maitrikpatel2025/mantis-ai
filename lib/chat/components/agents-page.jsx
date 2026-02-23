@@ -3,18 +3,37 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RefreshIcon, SpinnerIcon } from './icons.js';
 
+function AgentAvatar({ agent }) {
+  if (agent.avatar) {
+    return (
+      <img
+        src={agent.avatar}
+        alt={agent.displayName || agent.name}
+        className="w-8 h-8 rounded-full object-cover"
+      />
+    );
+  }
+
+  // Letter circle fallback
+  const letter = (agent.displayName || agent.name || '?')[0].toUpperCase();
+  return (
+    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium">
+      {letter}
+    </div>
+  );
+}
+
 function AgentCard({ agent }) {
   return (
     <div className="flex items-center justify-between p-4 border border-border rounded-lg">
       <div className="flex items-center gap-3">
-        <div
-          className={`w-2 h-2 rounded-full ${
-            agent.enabled !== false ? 'bg-green-500' : 'bg-muted-foreground'
-          }`}
-        />
+        <AgentAvatar agent={agent} />
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-medium text-sm">{agent.name}</span>
+            <span className="font-medium text-sm">{agent.displayName || agent.name}</span>
+            {agent.displayName && (
+              <span className="text-xs text-muted-foreground">({agent.name})</span>
+            )}
             {agent.model && (
               <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
                 {agent.model}
