@@ -56,8 +56,12 @@ export function ToastContainer() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  // Skip job toasts when user is already on the jobs page — they can see updates directly
+  const isOnJobsPage = () => window.location.pathname.startsWith('/settings/jobs') || window.location.pathname === '/swarm';
+
   // Listen for job completion
   useEventStream('job:completed', useCallback((data) => {
+    if (isOnJobsPage()) return;
     addToast({
       variant: 'success',
       title: 'Job completed',
@@ -68,6 +72,7 @@ export function ToastContainer() {
 
   // Listen for job failures
   useEventStream('job:failed', useCallback((data) => {
+    if (isOnJobsPage()) return;
     addToast({
       variant: 'error',
       title: 'Job failed',
@@ -78,6 +83,7 @@ export function ToastContainer() {
 
   // Listen for job:updated with terminal status (covers cancelJobAction which uses updateJob directly)
   useEventStream('job:updated', useCallback((data) => {
+    if (isOnJobsPage()) return;
     if (data?.status === 'completed') {
       addToast({
         variant: 'success',
@@ -95,7 +101,7 @@ export function ToastContainer() {
     }
   }, [addToast]));
 
-  // Listen for notifications
+  // Notifications always show — they're external events the user hasn't seen
   useEventStream('notification', useCallback((data) => {
     addToast({
       variant: 'info',
