@@ -35,22 +35,27 @@ export async function register() {
   }
 
   // Initialize auth database
+  console.log('[mantis] step: initDatabase');
   const { initDatabase } = await import('../lib/db/index.js');
   initDatabase();
 
   // Intercept console for log viewer
+  console.log('[mantis] step: interceptConsole');
   const { interceptConsole } = await import('../lib/logs/buffer.js');
   interceptConsole();
 
   // Initialize channel registry
+  console.log('[mantis] step: initChannelRegistry');
   const { initChannelRegistry } = await import('../lib/channels/registry.js');
   await initChannelRegistry();
 
   // Start cron scheduler
+  console.log('[mantis] step: loadCrons');
   const { loadCrons } = await import('../lib/cron.js');
   loadCrons();
 
   // Start built-in crons (version check)
+  console.log('[mantis] step: startBuiltinCrons');
   const { startBuiltinCrons, setUpdateAvailable } = await import('../lib/cron.js');
   startBuiltinCrons();
 

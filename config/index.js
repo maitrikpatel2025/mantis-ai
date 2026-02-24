@@ -10,6 +10,8 @@
  * @returns {Object} Enhanced Next.js config
  */
 export function withMantis(nextConfig = {}) {
+  const userWebpack = nextConfig.webpack;
+
   return {
     ...nextConfig,
     distDir: process.env.NEXT_BUILD_DIR || '.next',
@@ -18,5 +20,14 @@ export function withMantis(nextConfig = {}) {
       'better-sqlite3',
       'drizzle-orm',
     ],
+    webpack(config, options) {
+      // serverExternalPackages doesn't apply to the instrumentation bundle,
+      // so we must externalize native/fs-dependent packages via webpack config.
+      if (options.isServer) {
+        config.externals = config.externals || [];
+        config.externals.push('better-sqlite3', 'drizzle-orm', 'node-cron');
+      }
+      return userWebpack ? userWebpack(config, options) : config;
+    },
   };
 }

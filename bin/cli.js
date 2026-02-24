@@ -252,7 +252,11 @@ async function init() {
 
   // Run npm install
   console.log('\nInstalling dependencies...\n');
-  execSync('npm install', { stdio: 'inherit', cwd });
+  try {
+    execSync('npm install', { stdio: 'inherit', cwd });
+  } catch {
+    console.error('\n  npm install failed — you may need to install dependencies manually.\n');
+  }
 
   // Create or update .env with auto-generated infrastructure values
   const envPath = path.join(cwd, '.env');
