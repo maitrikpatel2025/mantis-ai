@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { PageLayout } from './page-layout.js';
 import { SpinnerIcon, ClockIcon, SwarmIcon, SettingsIcon, LayoutDashboardIcon, ZapIcon } from './icons.js';
+import { AreaChart, DonutChart } from './charts.js';
 
 const STAT_ACCENTS = [
   'border-l-emerald-500',
@@ -51,14 +52,34 @@ function timeAgo(ts) {
   return `${Math.round(diff / 86400000)}d ago`;
 }
 
-export function DashboardPage({ session, getDashboardDataAction }) {
+function formatTokensShort(n) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
+function formatCostShort(microdollars) {
+  if (!microdollars) return '$0';
+  const dollars = microdollars / 1_000_000;
+  if (dollars < 0.01) return `$${dollars.toFixed(4)}`;
+  return `$${dollars.toFixed(2)}`;
+}
+
+export function DashboardPage({ session, getDashboardDataAction, getDashboardChartsAction }) {
   const [data, setData] = useState(null);
+  const [charts, setCharts] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getDashboardDataAction()
-      .then((d) => setData(d))
-      .catch(() => {})
+    const promises = [getDashboardDataAction().catch(() => null)];
+    if (getDashboardChartsAction) {
+      promises.push(getDashboardChartsAction().catch(() => null));
+    }
+    Promise.all(promises)
+      .then(([d, c]) => {
+        setData(d);
+        if (c) setCharts(c);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -104,6 +125,49 @@ export function DashboardPage({ session, getDashboardDataAction }) {
               />
             )}
           </div>
+
+          {/* Sparkline charts */}
+          {charts && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+              <div className="rounded-xl border bg-card p-4 shadow-xs">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Token Usage (7d)</p>
+                <AreaChart
+                  data={(charts.tokenSparkline || []).map((d) => ({ label: d.day?.slice(5), value: d.value }))}
+                  color="emerald"
+                  formatValue={formatTokensShort}
+                />
+              </div>
+              <div className="rounded-xl border bg-card p-4 shadow-xs">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Cost Trend (7d)</p>
+                <AreaChart
+                  data={(charts.costSparkline || []).map((d) => ({ label: d.day?.slice(5), value: d.value }))}
+                  color="amber"
+                  formatValue={formatCostShort}
+                />
+              </div>
+              <div className="rounded-xl border bg-card p-4 shadow-xs">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Jobs Created (7d)</p>
+                <AreaChart
+                  data={(charts.jobsSparkline || []).map((d) => ({ label: d.day?.slice(5), value: d.value }))}
+                  color="blue"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Job status donut */}
+          {data.jobCounts && (data.jobCounts.completed > 0 || data.jobCounts.failed > 0 || data.jobCounts.created > 0 || data.jobCounts.queued > 0) && (
+            <div className="rounded-xl border bg-card p-4 shadow-xs mb-6">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Job Status Distribution</p>
+              <DonutChart
+                data={[
+                  ...(data.jobCounts.completed ? [{ label: 'Completed', value: data.jobCounts.completed, color: '#10b981' }] : []),
+                  ...(data.jobCounts.failed ? [{ label: 'Failed', value: data.jobCounts.failed, color: '#f43f5e' }] : []),
+                  ...((data.jobCounts.created + data.jobCounts.queued) ? [{ label: 'Active', value: data.jobCounts.created + data.jobCounts.queued, color: '#3b82f6' }] : []),
+                ]}
+              />
+            </div>
+          )}
 
           {/* Recent notifications */}
           <div className="rounded-xl border bg-card shadow-xs mb-6">

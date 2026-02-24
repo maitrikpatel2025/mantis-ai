@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SpinnerIcon, BarChartIcon } from './icons.js';
+import { BarChart, DonutChart, TokenBreakdownBars, SourceBreakdownBars } from './charts.js';
 
 const PERIODS = [
   { id: '24h', label: 'Today' },
@@ -46,28 +47,6 @@ function StatCard({ label, value, sub, accentIndex = 0 }) {
   );
 }
 
-function BarChart({ data, label }) {
-  if (!data || data.length === 0) return <p className="text-sm text-muted-foreground">No data</p>;
-  const max = Math.max(...data.map((d) => d.value), 1);
-
-  return (
-    <div className="flex flex-col gap-1">
-      <p className="text-xs font-medium text-muted-foreground mb-2">{label}</p>
-      <div className="flex items-end gap-1 h-32">
-        {data.map((d, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1">
-            <div
-              className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 rounded-t transition-all"
-              style={{ height: `${Math.max((d.value / max) * 100, 2)}%` }}
-            />
-            <span className="text-[9px] text-muted-foreground truncate max-w-full">{d.label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function FilterChip({ label, active, onClick }) {
   return (
     <button
@@ -83,25 +62,40 @@ function FilterChip({ label, active, onClick }) {
   );
 }
 
-export function UsagePage({ getUsageStatsAction, getUsageByModelAction, getUsageByDayAction }) {
+const CHART_TABS = [
+  { id: 'requests', label: 'Requests', color: 'emerald' },
+  { id: 'tokens', label: 'Tokens', color: 'blue' },
+  { id: 'cost', label: 'Cost', color: 'amber' },
+];
+
+export function UsagePage({ getUsageStatsAction, getUsageByModelAction, getUsageByDayAction, getTokenBreakdownByDayAction, getUsageBySourceAction }) {
   const [period, setPeriod] = useState('7d');
   const [stats, setStats] = useState(null);
   const [byModel, setByModel] = useState([]);
   const [byDay, setByDay] = useState([]);
+  const [tokenBreakdown, setTokenBreakdown] = useState([]);
+  const [bySource, setBySource] = useState([]);
+  const [chartView, setChartView] = useState('requests');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
     const dayMap = { '24h': 1, '7d': 7, '30d': 30, 'all': 365 };
-    Promise.all([
+    const days = dayMap[period] || 7;
+    const promises = [
       getUsageStatsAction(period),
       getUsageByModelAction(period),
-      getUsageByDayAction(dayMap[period] || 7),
-    ])
-      .then(([s, m, d]) => {
+      getUsageByDayAction(days),
+    ];
+    if (getTokenBreakdownByDayAction) promises.push(getTokenBreakdownByDayAction(days));
+    if (getUsageBySourceAction) promises.push(getUsageBySourceAction(period));
+    Promise.all(promises)
+      .then(([s, m, d, tb, src]) => {
         setStats(s);
         setByModel(m);
         setByDay(d);
+        if (tb) setTokenBreakdown(tb);
+        if (src) setBySource(src);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -140,15 +134,69 @@ export function UsagePage({ getUsageStatsAction, getUsageByModelAction, getUsage
             <StatCard label="Avg Latency" value={formatDuration(stats?.avgDurationMs)} accentIndex={3} />
           </div>
 
-          {/* Daily bar chart */}
+          {/* Tabbed daily chart */}
           <div className="rounded-xl border bg-card p-4 shadow-xs mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              {CHART_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setChartView(tab.id)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    chartView === tab.id
+                      ? 'bg-foreground text-background'
+                      : 'bg-muted text-muted-foreground hover:bg-accent'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
             <BarChart
-              label="Requests per day"
-              data={byDay.map((d) => ({ label: d.day?.slice(5) || '', value: Number(d.requests) }))}
+              data={byDay.map((d) => ({
+                label: d.day?.slice(5) || '',
+                value: chartView === 'requests' ? Number(d.requests)
+                     : chartView === 'tokens' ? Number(d.totalTokens)
+                     : Number(d.totalCost),
+              }))}
+              color={CHART_TABS.find((t) => t.id === chartView)?.color || 'emerald'}
+              formatValue={
+                chartView === 'tokens' ? formatTokens
+                : chartView === 'cost' ? formatCost
+                : undefined
+              }
             />
           </div>
 
-          {/* Model breakdown */}
+          {/* Token breakdown */}
+          {tokenBreakdown.length > 0 && (
+            <div className="rounded-xl border bg-card p-4 shadow-xs mb-6">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Token Breakdown by Day</p>
+              <TokenBreakdownBars data={tokenBreakdown} />
+            </div>
+          )}
+
+          {/* Model donut + Source bars */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+            {byModel.length > 0 && (
+              <div className="rounded-xl border bg-card p-4 shadow-xs">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Model Distribution</p>
+                <DonutChart
+                  data={byModel.map((m) => ({
+                    label: m.model,
+                    value: Number(m.requests),
+                  }))}
+                />
+              </div>
+            )}
+            {bySource.length > 0 && (
+              <div className="rounded-xl border bg-card p-4 shadow-xs">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Source Breakdown</p>
+                <SourceBreakdownBars data={bySource} />
+              </div>
+            )}
+          </div>
+
+          {/* Model table */}
           {byModel.length > 0 && (
             <div className="rounded-xl border bg-card shadow-xs overflow-hidden">
               <div className="px-4 py-3 border-b">
