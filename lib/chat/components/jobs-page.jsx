@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { SpinnerIcon, RefreshIcon, ChevronDownIcon, SearchIcon, ServerIcon, CloudIcon, XIcon, RotateCcwIcon } from './icons.js';
+import { SpinnerIcon, RefreshIcon, ChevronDownIcon, SearchIcon, ServerIcon, CloudIcon, ZapIcon, XIcon, RotateCcwIcon } from './icons.js';
 import { getJobs, getJob, getJobDashboardCounts, cancelJobAction, retryJobAction } from '../actions.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -62,15 +62,19 @@ function LoadingSkeleton() {
 
 function RunnerBadge({ runnerType }) {
   if (!runnerType) return null;
+  const isWarm = runnerType === 'warm';
   const isLocal = runnerType === 'local';
+  const style = isWarm
+    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+    : isLocal
+      ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
+      : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400';
+  const Icon = isWarm ? ZapIcon : isLocal ? ServerIcon : CloudIcon;
+  const label = isWarm ? 'Warm' : isLocal ? 'Local' : 'GitHub';
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0 ${
-      isLocal
-        ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
-        : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
-    }`}>
-      {isLocal ? <ServerIcon size={10} /> : <CloudIcon size={10} />}
-      {isLocal ? 'Local' : 'GitHub'}
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0 ${style}`}>
+      <Icon size={10} />
+      {label}
     </span>
   );
 }

@@ -78,5 +78,29 @@ export async function register() {
     console.error('[mantis] Orphaned container cleanup failed:', err.message);
   }
 
+  // Initialize warm pool if configured
+  try {
+    const { isLocalExecutionEnabled: localEnabled, getWarmPoolSize } = await import('../lib/execution/router.js');
+    if (localEnabled() && getWarmPoolSize() > 0) {
+      console.log('[mantis] step: initWarmPool');
+      const { initWarmPool } = await import('../lib/execution/warm-pool.js');
+      await initWarmPool();
+    }
+  } catch (err) {
+    console.error('[mantis] Warm pool initialization failed:', err.message);
+  }
+
+  // Graceful shutdown — stop warm containers when event handler exits
+  const shutdownHandler = async (signal) => {
+    console.log(`[mantis] ${signal} received, shutting down...`);
+    try {
+      const { shutdownWarmPool } = await import('../lib/execution/warm-pool.js');
+      await shutdownWarmPool();
+    } catch {}
+    process.exit(0);
+  };
+  process.on('SIGTERM', () => shutdownHandler('SIGTERM'));
+  process.on('SIGINT', () => shutdownHandler('SIGINT'));
+
   console.log('mantis-ai initialized');
 }

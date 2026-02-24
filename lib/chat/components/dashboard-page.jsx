@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { PageLayout } from './page-layout.js';
-import { SpinnerIcon, ClockIcon, SwarmIcon, SettingsIcon, LayoutDashboardIcon } from './icons.js';
+import { SpinnerIcon, ClockIcon, SwarmIcon, SettingsIcon, LayoutDashboardIcon, ZapIcon } from './icons.js';
 
 const STAT_ACCENTS = [
   'border-l-emerald-500',
@@ -11,6 +11,7 @@ const STAT_ACCENTS = [
   'border-l-purple-500',
   'border-l-sky-500',
   'border-l-rose-500',
+  'border-l-amber-500',
 ];
 
 function StatCard({ label, value, sub, accentIndex = 0 }) {
@@ -94,6 +95,14 @@ export function DashboardPage({ session, getDashboardDataAction }) {
               />
             )}
             {!data.jobCounts && <StatCard label="Node.js" value={data.nodeVersion || '—'} accentIndex={5} />}
+            {data.warmPool && (
+              <StatCard
+                label="Warm Pool"
+                value={`${data.warmPool.available}/${data.warmPool.size}`}
+                sub={data.warmPool.busy > 0 ? `${data.warmPool.busy} busy` : 'All idle'}
+                accentIndex={6}
+              />
+            )}
           </div>
 
           {/* Recent notifications */}
