@@ -1,0 +1,1 @@
+SSE real-time test: write a haiku about coding
