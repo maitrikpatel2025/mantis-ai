@@ -1,6 +1,6 @@
 {
   "name": "mantis-ai",
-  "version": "1.2.71",
+  "version": "1.3.0",
   "type": "module",
   "description": "Create autonomous AI agents with a two-layer architecture: Next.js Event Handler + Docker Agent.",
   "bin": {
