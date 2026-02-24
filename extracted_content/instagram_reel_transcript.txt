@@ -1,0 +1,58 @@
+================================================================================
+INSTAGRAM REEL CONTENT EXTRACTION
+================================================================================
+URL: https://www.instagram.com/reels/DTTE7H2imEH/
+Extracted at: 2026-02-24T17:18:41.497Z
+================================================================================
+
+NOTE: Login wall detected. Content may be limited.
+
+PAGE TITLE:
+Instagram
+
+CAPTION TEXT:
+creator_secrets_official
+---
+creator_secrets_official · Original audio
+
+TRANSCRIPT/SUBTITLES:
+(No transcript or subtitle text found)
+
+COMMENTS:
+1. creator_secrets_official
+2. creator_secrets_official · Original audio
+
+ALL VISIBLE TEXT (RAW):
+--------------------------------------------------------------------------------
+Log In
+Sign Up
+creator_secrets_official
+Follow
+Is this the future of social media, gaming, and business ❓🤔
+creator_secrets_official · Original audio
+12.7K
+2,825
+creator_secrets_official
+Follow
+Some people say AI is the end of creativity... They are confused.
+… more
+creator_secrets_official · Original audio
+185
+15
+creator_secrets_official
+Follow
+She vlogs better than me, sells better than me, and goes viral more than me. 2026 is not about becoming the next big influencer. Its about creating one.
+… more
+creator_secrets_official · Original audio
+85
+4
+creator_secrets_official
+Follow
+Kling 3.0 realism test using binding elements to retain facial consistency
+… more
+creator_secrets_official · Original audio
+129
+3
+--------------------------------------------------------------------------------
+
+Screenshot saved to: /job/extracted_content/instagram_reel_screenshot.png
