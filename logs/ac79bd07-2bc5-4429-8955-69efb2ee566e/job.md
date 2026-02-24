@@ -1,0 +1,1 @@
+LIVE SSE TEST 4: should appear without refresh
