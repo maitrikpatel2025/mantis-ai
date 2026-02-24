@@ -48,9 +48,9 @@ export function SidebarHistoryItem({ chat, isActive, onDelete, onStar, onRename 
             <DropdownMenuTrigger asChild>
               <button
                 className={cn(
-                  'rounded-md p-1',
+                  'rounded-md p-1 transition-colors',
                   'text-muted-foreground hover:text-foreground',
-                  'bg-foreground/10 hover:bg-foreground/15'
+                  'bg-accent hover:bg-accent/80'
                 )}
                 aria-label="Chat options"
               >

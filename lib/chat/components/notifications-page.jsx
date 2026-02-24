@@ -41,11 +41,8 @@ export function NotificationsPage({ session }) {
   }, []);
 
   return (
-    <PageLayout session={session}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Notifications</h1>
-      </div>
+    <PageLayout session={session} title="Notifications">
+      {/* Count */}
 
       {/* Count */}
       <p className="text-sm text-muted-foreground mb-4">
@@ -66,7 +63,7 @@ export function NotificationsPage({ session }) {
       ) : (
         <div className="flex flex-col gap-3">
           {notifications.map((n) => (
-            <div key={n.id} className="flex items-start gap-3 p-4 border border-border rounded-lg">
+            <div key={n.id} className="flex items-start gap-3 p-4 border border-border rounded-xl bg-card shadow-xs">
               <div className="mt-0.5 shrink-0 text-muted-foreground">
                 <BellIcon size={16} />
               </div>

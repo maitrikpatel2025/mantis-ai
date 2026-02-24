@@ -11,9 +11,9 @@ const LEVELS = [
 ];
 
 const levelColors = {
-  info: 'bg-blue-500/10 text-blue-500',
-  warn: 'bg-yellow-500/10 text-yellow-500',
-  error: 'bg-red-500/10 text-red-500',
+  info: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  warn: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  error: 'bg-red-500/10 text-red-600 dark:text-red-400',
 };
 
 function timeAgo(ts) {
@@ -21,6 +21,21 @@ function timeAgo(ts) {
   if (diff < 60000) return `${Math.round(diff / 1000)}s ago`;
   if (diff < 3600000) return `${Math.round(diff / 60000)}m ago`;
   return `${Math.round(diff / 3600000)}h ago`;
+}
+
+function FilterChip({ label, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+        active
+          ? 'bg-foreground text-background'
+          : 'bg-muted text-muted-foreground hover:bg-accent'
+      }`}
+    >
+      {label}
+    </button>
+  );
 }
 
 export function LogsPage({ getLogsAction, clearLogsAction }) {
@@ -70,19 +85,14 @@ export function LogsPage({ getLogsAction, clearLogsAction }) {
     <>
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex gap-1">
+        <div className="flex gap-1.5">
           {LEVELS.map((l) => (
-            <button
+            <FilterChip
               key={l.id}
+              label={l.label}
+              active={level === l.id}
               onClick={() => setLevel(l.id)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                level === l.id
-                  ? 'bg-foreground text-background'
-                  : 'bg-muted text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {l.label}
-            </button>
+            />
           ))}
         </div>
         <input
@@ -90,7 +100,7 @@ export function LogsPage({ getLogsAction, clearLogsAction }) {
           placeholder="Filter by text..."
           value={source}
           onChange={(e) => setSource(e.target.value)}
-          className="px-3 py-1.5 text-xs rounded-md border bg-background text-foreground w-48"
+          className="px-3 py-1.5 text-xs rounded-lg border border-input bg-transparent text-foreground w-48 shadow-xs focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring transition-[color,box-shadow]"
         />
         <div className="flex items-center gap-2 ml-auto">
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
@@ -102,10 +112,10 @@ export function LogsPage({ getLogsAction, clearLogsAction }) {
             />
             Auto-refresh
           </label>
-          <button onClick={handleCopyAll} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground" title="Copy all">
+          <button onClick={handleCopyAll} className="p-1.5 rounded-md hover:bg-accent text-muted-foreground transition-colors" title="Copy all">
             <CopyIcon size={14} />
           </button>
-          <button onClick={handleClear} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground" title="Clear logs">
+          <button onClick={handleClear} className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-destructive transition-colors" title="Clear logs">
             <TrashIcon size={14} />
           </button>
         </div>
@@ -127,16 +137,29 @@ export function LogsPage({ getLogsAction, clearLogsAction }) {
           </p>
         </div>
       ) : (
-        <div ref={scrollRef} className="rounded-lg border bg-card overflow-auto max-h-[60vh] font-mono text-xs">
-          {logs.map((log, i) => (
-            <div key={i} className="flex items-start gap-2 px-3 py-1.5 border-b last:border-0 hover:bg-accent/30">
-              <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium shrink-0 ${levelColors[log.level] || levelColors.info}`}>
-                {log.level}
-              </span>
-              <span className="text-muted-foreground shrink-0 w-14">{timeAgo(log.timestamp)}</span>
-              <span className="break-all whitespace-pre-wrap">{log.message}</span>
-            </div>
-          ))}
+        <div ref={scrollRef} className="rounded-xl border bg-card shadow-xs overflow-hidden">
+          <table className="w-full text-xs font-mono">
+            <thead>
+              <tr className="border-b text-muted-foreground">
+                <th className="text-left px-3 py-2 font-medium w-16">Level</th>
+                <th className="text-left px-3 py-2 font-medium w-20">Time</th>
+                <th className="text-left px-3 py-2 font-medium">Message</th>
+              </tr>
+            </thead>
+            <tbody className="max-h-[60vh] overflow-auto">
+              {logs.map((log, i) => (
+                <tr key={i} className="border-b last:border-0 hover:bg-accent/30 transition-colors">
+                  <td className="px-3 py-1.5">
+                    <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase ${levelColors[log.level] || levelColors.info}`}>
+                      {log.level}
+                    </span>
+                  </td>
+                  <td className="px-3 py-1.5 text-muted-foreground">{timeAgo(log.timestamp)}</td>
+                  <td className="px-3 py-1.5 break-all whitespace-pre-wrap">{log.message}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </>

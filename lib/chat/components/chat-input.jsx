@@ -62,7 +62,7 @@ function ModelSelector({ model, setModel, catalog }) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 0 0-4 4v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-2V6a4 4 0 0 0-4-4z"/></svg>
         {currentLabel}
@@ -181,8 +181,8 @@ export function ChatInput({ input, setInput, onSubmit, status, stop, files, setF
       <form onSubmit={handleSubmit} className="relative">
         <div
           className={cn(
-            'flex flex-col rounded-xl border bg-muted p-2 transition-colors',
-            isDragging ? 'border-primary bg-primary/5' : 'border-border'
+            'flex flex-col rounded-xl border bg-card shadow-sm p-2 transition-all',
+            isDragging ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border'
           )}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}

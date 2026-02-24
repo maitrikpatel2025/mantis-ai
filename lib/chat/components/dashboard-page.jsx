@@ -4,11 +4,20 @@ import { useState, useEffect } from 'react';
 import { PageLayout } from './page-layout.js';
 import { SpinnerIcon, ClockIcon, SwarmIcon, SettingsIcon, LayoutDashboardIcon } from './icons.js';
 
-function StatCard({ label, value, sub }) {
+const STAT_ACCENTS = [
+  'border-l-emerald-500',
+  'border-l-blue-500',
+  'border-l-orange-500',
+  'border-l-purple-500',
+  'border-l-sky-500',
+  'border-l-rose-500',
+];
+
+function StatCard({ label, value, sub, accentIndex = 0 }) {
   return (
-    <div className="rounded-lg border bg-card p-4">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-xl font-semibold mt-1">{value}</p>
+    <div className={`rounded-xl border border-l-4 ${STAT_ACCENTS[accentIndex % STAT_ACCENTS.length]} bg-card p-4 shadow-xs hover:shadow-md transition-shadow`}>
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p className="text-xl font-semibold mt-1.5 tracking-tight">{value}</p>
       {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
     </div>
   );
@@ -53,10 +62,8 @@ export function DashboardPage({ session, getDashboardDataAction }) {
   }, []);
 
   return (
-    <PageLayout session={session}>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-      </div>
+    <PageLayout session={session} title="Dashboard">
+      <p className="text-sm text-muted-foreground mb-6">Overview of your agent system.</p>
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
@@ -73,18 +80,18 @@ export function DashboardPage({ session, getDashboardDataAction }) {
         <>
           {/* Stat cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-            <StatCard label="Uptime" value={formatUptime(data.uptimeMs)} />
-            <StatCard label="Database Size" value={formatBytes(data.dbSizeBytes)} />
-            <StatCard label="Active Channels" value={data.activeChannels || 0} />
-            <StatCard label="Active Crons" value={data.activeCrons || 0} />
-            <StatCard label="Agents" value={data.totalAgents || 0} />
-            <StatCard label="Node.js" value={data.nodeVersion || '—'} />
+            <StatCard label="Uptime" value={formatUptime(data.uptimeMs)} accentIndex={0} />
+            <StatCard label="Database Size" value={formatBytes(data.dbSizeBytes)} accentIndex={1} />
+            <StatCard label="Active Channels" value={data.activeChannels || 0} accentIndex={2} />
+            <StatCard label="Active Crons" value={data.activeCrons || 0} accentIndex={3} />
+            <StatCard label="Agents" value={data.totalAgents || 0} accentIndex={4} />
+            <StatCard label="Node.js" value={data.nodeVersion || '—'} accentIndex={5} />
           </div>
 
           {/* Recent notifications */}
-          <div className="rounded-lg border bg-card mb-6">
+          <div className="rounded-xl border bg-card shadow-xs mb-6">
             <div className="px-4 py-3 border-b">
-              <p className="text-sm font-medium">Recent Notifications</p>
+              <p className="text-sm font-semibold">Recent Notifications</p>
             </div>
             {(!data.recentNotifications || data.recentNotifications.length === 0) ? (
               <p className="px-4 py-6 text-sm text-muted-foreground text-center">No recent notifications</p>
@@ -102,15 +109,15 @@ export function DashboardPage({ session, getDashboardDataAction }) {
 
           {/* Quick actions */}
           <div className="flex flex-wrap gap-2">
-            <a href="/swarm" className="inline-flex items-center gap-2 px-4 py-2 rounded-md border text-sm hover:bg-accent/50 transition-colors">
+            <a href="/swarm" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors">
               <SwarmIcon size={14} />
               View Swarm
             </a>
-            <a href="/settings/crons" className="inline-flex items-center gap-2 px-4 py-2 rounded-md border text-sm hover:bg-accent/50 transition-colors">
+            <a href="/settings/crons" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors">
               <ClockIcon size={14} />
               Cron Jobs
             </a>
-            <a href="/settings/secrets" className="inline-flex items-center gap-2 px-4 py-2 rounded-md border text-sm hover:bg-accent/50 transition-colors">
+            <a href="/settings/secrets" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors">
               <SettingsIcon size={14} />
               Settings
             </a>

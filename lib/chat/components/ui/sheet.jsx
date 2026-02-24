@@ -47,7 +47,7 @@ export function SheetContent({ children, className, side = 'left', ...props }) {
     <div className="fixed inset-0 z-50">
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black/50"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={() => onOpenChange(false)}
       />
       {/* Content */}
@@ -71,7 +71,7 @@ export function SheetHeader({ children, className }) {
 }
 
 export function SheetTitle({ children, className }) {
-  return <h2 className={cn('text-lg font-semibold text-foreground', className)}>{children}</h2>;
+  return <h2 className={cn('text-lg font-semibold tracking-tight text-foreground', className)}>{children}</h2>;
 }
 
 export function SheetDescription({ children, className }) {

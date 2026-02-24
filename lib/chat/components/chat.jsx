@@ -5,7 +5,6 @@ import { DefaultChatTransport } from 'ai';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Messages } from './messages.js';
 import { ChatInput } from './chat-input.js';
-import { ChatHeader } from './chat-header.js';
 import { Greeting } from './greeting.js';
 
 export function Chat({ chatId, initialMessages = [], getModelsCatalog }) {
@@ -116,14 +115,13 @@ export function Chat({ chatId, initialMessages = [], getModelsCatalog }) {
   }, [messages, setMessages, sendMessage]);
 
   return (
-    <div className="flex h-svh flex-col">
-      <ChatHeader chatId={chatId} />
+    <div className="flex flex-1 flex-col h-full">
       {messages.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center px-4 md:px-6">
           <div className="w-full max-w-4xl">
             <Greeting />
             {error && (
-              <div className="mt-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+              <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                 {error.message || 'Something went wrong. Please try again.'}
               </div>
             )}
@@ -148,7 +146,7 @@ export function Chat({ chatId, initialMessages = [], getModelsCatalog }) {
           <Messages messages={messages} status={status} onRetry={handleRetry} onEdit={handleEdit} />
           {error && (
             <div className="mx-auto w-full max-w-4xl px-2 md:px-4">
-              <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                 {error.message || 'Something went wrong. Please try again.'}
               </div>
             </div>

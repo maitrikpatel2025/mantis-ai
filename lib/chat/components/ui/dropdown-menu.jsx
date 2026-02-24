@@ -65,7 +65,7 @@ export function DropdownMenuContent({ children, className, align = 'start', side
     <div
       ref={ref}
       className={cn(
-        'absolute z-50 min-w-[8rem] overflow-hidden rounded-md border border-border bg-background/80 backdrop-blur-sm p-1 text-foreground shadow-lg',
+        'absolute z-50 min-w-[8rem] overflow-hidden rounded-xl border border-border bg-card/80 backdrop-blur-sm p-1 text-foreground shadow-lg animate-fade-in',
         side === 'bottom' && `top-full mt-1`,
         side === 'top' && `bottom-full mb-1`,
         align === 'end' && 'right-0',
@@ -85,7 +85,7 @@ export function DropdownMenuItem({ children, className, onClick, ...props }) {
     <div
       role="menuitem"
       className={cn(
-        'relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-background focus:bg-background',
+        'relative flex cursor-pointer select-none items-center gap-2 rounded-lg px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent focus:bg-accent',
         className
       )}
       onClick={(e) => {

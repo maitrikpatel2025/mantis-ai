@@ -160,7 +160,7 @@ export function SidebarFooter({ children, className }) {
 }
 
 export function SidebarMenu({ children, className }) {
-  return <ul className={cn('flex w-full min-w-0 flex-col gap-1', className)}>{children}</ul>;
+  return <ul className={cn('flex w-full min-w-0 flex-col gap-0.5', className)}>{children}</ul>;
 }
 
 export function SidebarMenuItem({ children, className }) {
@@ -172,9 +172,10 @@ export function SidebarMenuButton({ children, className, isActive, asChild, tool
   return (
     <Tag
       className={cn(
-        'flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none transition-colors',
-        'hover:bg-background hover:text-foreground',
-        isActive && 'bg-background text-foreground font-medium',
+        'flex w-full items-center gap-2 overflow-hidden py-1.5 text-left text-[13px] outline-none transition-colors',
+        isActive
+          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium px-3'
+          : 'mx-2 px-3 rounded-md hover:bg-accent/50 hover:text-foreground',
         className
       )}
       {...props}
@@ -192,7 +193,7 @@ export function SidebarGroupLabel({ children, className }) {
   return (
     <div
       className={cn(
-        'flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-muted-foreground',
+        'flex h-6 shrink-0 items-center rounded-md px-2 text-xs font-medium text-muted-foreground',
         className
       )}
     >

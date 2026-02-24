@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { SearchIcon, RefreshIcon, SpinnerIcon, TrashIcon, ArrowUpCircleIcon } from './icons.js';
+import { SearchIcon, RefreshIcon, SpinnerIcon, TrashIcon, ArrowUpCircleIcon, WrenchIcon } from './icons.js';
 
 function SkillCard({ skill, onToggle, onRemove }) {
   const [toggling, setToggling] = useState(false);
@@ -27,46 +27,63 @@ function SkillCard({ skill, onToggle, onRemove }) {
   }
 
   const canRemove = onRemove && skill.source === 'registry';
+  const disabled = !skill.enabled;
 
   return (
-    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-sm">{skill.name}</span>
-          <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
-            {skill.version}
-          </span>
-          <span className="text-xs text-muted-foreground">{skill.source}</span>
+    <div className={`rounded-xl border bg-card shadow-xs transition-all hover:shadow-md ${disabled ? 'opacity-60' : ''}`}>
+      <div className="p-4 pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="shrink-0 rounded-lg bg-violet-500/10 p-2.5 text-violet-600 dark:text-violet-400">
+              <WrenchIcon size={16} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold truncate">{skill.name}</p>
+              {skill.description && (
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{skill.description}</p>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={handleToggle}
+            disabled={toggling}
+            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
+              disabled ? 'bg-stone-300 dark:bg-stone-600' : 'bg-emerald-500'
+            }`}
+          >
+            <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${disabled ? 'translate-x-0.5' : 'translate-x-[18px]'}`} />
+          </button>
         </div>
-        {skill.description && (
-          <p className="text-xs text-muted-foreground mt-1">{skill.description}</p>
-        )}
+
+        {/* Badges */}
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold bg-muted text-muted-foreground">
+            v{skill.version}
+          </span>
+          <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium ${
+            skill.source === 'registry'
+              ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+              : 'bg-muted text-muted-foreground'
+          }`}>
+            {skill.source}
+          </span>
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        {canRemove && (
+
+      {/* Footer */}
+      {canRemove && (
+        <div className="border-t px-4 py-2.5 flex items-center justify-end">
           <button
             onClick={handleRemove}
             disabled={removing}
-            className="p-1.5 text-muted-foreground hover:text-red-500 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-destructive transition-colors disabled:opacity-50"
             title="Remove skill"
           >
-            {removing ? <SpinnerIcon size={14} /> : <TrashIcon size={14} />}
+            {removing ? <SpinnerIcon size={12} /> : <TrashIcon size={12} />}
+            <span>Remove</span>
           </button>
-        )}
-        <button
-          onClick={handleToggle}
-          disabled={toggling}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            skill.enabled ? 'bg-foreground' : 'bg-muted'
-          }`}
-        >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
-              skill.enabled ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -84,37 +101,43 @@ function RegistrySkillCard({ skill, installed, onInstall }) {
   }
 
   return (
-    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-sm">{skill.name}</span>
-          <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
-            {skill.version}
+    <div className="rounded-xl border bg-card shadow-xs transition-all hover:shadow-md">
+      <div className="p-4 pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{skill.name}</p>
+            {skill.description && (
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{skill.description}</p>
+            )}
+          </div>
+          <button
+            onClick={handleInstall}
+            disabled={installing || installed}
+            className={`shrink-0 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${
+              installed
+                ? 'bg-muted text-muted-foreground'
+                : 'bg-emerald-600 text-white hover:bg-emerald-700'
+            }`}
+          >
+            {installing ? <SpinnerIcon size={12} /> : installed ? 'Installed' : 'Install'}
+          </button>
+        </div>
+
+        {/* Badges */}
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold bg-muted text-muted-foreground">
+            v{skill.version}
           </span>
           {skill.author && (
-            <span className="text-xs text-muted-foreground">by {skill.author}</span>
+            <span className="text-[10px] text-muted-foreground">by {skill.author}</span>
           )}
+          {skill.tags?.map((tag) => (
+            <span key={tag} className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">
+              {tag}
+            </span>
+          ))}
         </div>
-        {skill.description && (
-          <p className="text-xs text-muted-foreground mt-1">{skill.description}</p>
-        )}
-        {skill.tags?.length > 0 && (
-          <div className="flex gap-1 mt-1">
-            {skill.tags.map((tag) => (
-              <span key={tag} className="text-xs px-1.5 py-0.5 bg-muted rounded text-muted-foreground">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
-      <button
-        onClick={handleInstall}
-        disabled={installing || installed}
-        className="px-3 py-1.5 text-xs font-medium rounded-md border border-border hover:bg-muted disabled:opacity-50 transition-colors"
-      >
-        {installing ? <SpinnerIcon size={12} /> : installed ? 'Installed' : 'Install'}
-      </button>
     </div>
   );
 }
@@ -132,7 +155,7 @@ function UpdateCard({ update, onUpdate }) {
   }
 
   return (
-    <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/30">
+    <div className="flex items-center justify-between p-3 rounded-xl border border-amber-500/20 bg-amber-500/5">
       <div className="flex items-center gap-2">
         <span className="font-medium text-sm">{update.name}</span>
         <span className="text-xs text-muted-foreground">
@@ -142,7 +165,7 @@ function UpdateCard({ update, onUpdate }) {
       <button
         onClick={handleUpdate}
         disabled={updating}
-        className="px-3 py-1.5 text-xs font-medium rounded-md border border-border hover:bg-muted disabled:opacity-50 transition-colors"
+        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-colors"
       >
         {updating ? <SpinnerIcon size={12} /> : 'Update'}
       </button>
@@ -262,7 +285,6 @@ export function SkillsPage({
   }
 
   async function handleUpdate(name) {
-    // Re-install to get the latest version
     const result = await installSkillAction(name);
     if (result?.success) {
       showStatus(result.message);
@@ -276,117 +298,127 @@ export function SkillsPage({
   const installedNames = new Set(skills.map((s) => s.name));
 
   return (
-      <div className="space-y-6">
-        {/* Status message */}
-        {statusMessage && (
-          <div
-            className={`px-4 py-2 rounded-md text-sm ${
-              statusMessage.isError
-                ? 'bg-red-500/10 text-red-500 border border-red-500/20'
-                : 'bg-green-500/10 text-green-500 border border-green-500/20'
-            }`}
-          >
-            {statusMessage.text}
+    <div className="space-y-6">
+      {/* Status message */}
+      {statusMessage && (
+        <div
+          className={`px-4 py-2 rounded-xl text-sm animate-fade-in ${
+            statusMessage.isError
+              ? 'bg-destructive/10 text-destructive border border-destructive/20'
+              : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+          }`}
+        >
+          {statusMessage.text}
+        </div>
+      )}
+
+      {/* Installed skills */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-muted-foreground">
+            {!loading && `${skills.length} skill${skills.length !== 1 ? 's' : ''} installed`}
+          </p>
+          <div className="flex items-center gap-2">
+            {checkSkillUpdatesAction && (
+              <button
+                onClick={handleCheckUpdates}
+                disabled={checkingUpdates}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-accent transition-colors disabled:opacity-50"
+              >
+                {checkingUpdates ? <SpinnerIcon size={12} /> : <ArrowUpCircleIcon size={12} />}
+                Check for Updates
+              </button>
+            )}
+            <button
+              onClick={loadSkills}
+              disabled={loading}
+              className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {loading ? <SpinnerIcon size={14} /> : <RefreshIcon size={14} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Updates available */}
+        {updates && updates.length > 0 && (
+          <div className="mb-4 space-y-2">
+            {updates.map((update) => (
+              <UpdateCard key={update.name} update={update} onUpdate={handleUpdate} />
+            ))}
           </div>
         )}
 
-        {/* Installed skills */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-medium">Installed Skills</h2>
-            <div className="flex items-center gap-2">
-              {checkSkillUpdatesAction && (
-                <button
-                  onClick={handleCheckUpdates}
-                  disabled={checkingUpdates}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border hover:bg-muted transition-colors disabled:opacity-50"
-                >
-                  {checkingUpdates ? <SpinnerIcon size={12} /> : <ArrowUpCircleIcon size={12} />}
-                  Check for Updates
-                </button>
-              )}
-              <button
-                onClick={loadSkills}
-                disabled={loading}
-                className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {loading ? <SpinnerIcon size={14} /> : <RefreshIcon size={14} />}
-              </button>
-            </div>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-36 animate-pulse rounded-xl bg-border/50" />
+            ))}
           </div>
-
-          {/* Updates available */}
-          {updates && updates.length > 0 && (
-            <div className="mb-4 space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Updates Available</h3>
-              {updates.map((update) => (
-                <UpdateCard key={update.name} update={update} onUpdate={handleUpdate} />
-              ))}
+        ) : skills.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="rounded-full bg-muted p-4 mb-4">
+              <WrenchIcon size={24} />
             </div>
-          )}
+            <p className="text-sm font-medium mb-1">No skills installed</p>
+            <p className="text-xs text-muted-foreground max-w-sm">
+              Search the registry below to install skills.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {skills.map((skill) => (
+              <SkillCard
+                key={skill.name}
+                skill={skill}
+                onToggle={handleToggle}
+                onRemove={removeSkillAction ? handleRemove : null}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
-              <SpinnerIcon size={16} />
-              <span className="ml-2 text-sm">Loading skills...</span>
-            </div>
-          ) : skills.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">No skills installed.</p>
-          ) : (
-            <div className="space-y-2">
-              {skills.map((skill) => (
-                <SkillCard
+      {/* Search registry */}
+      <div className="border-t pt-6">
+        <h2 className="text-sm font-semibold mb-3">Skill Registry</h2>
+        <form onSubmit={handleSearch} className="flex gap-2 mb-4">
+          <div className="relative flex-1">
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
+              <SearchIcon size={14} />
+            </span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search skills..."
+              className="w-full pl-8 pr-3 py-2 text-sm border border-input rounded-lg bg-transparent shadow-xs focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring transition-[color,box-shadow]"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={searching}
+            className="px-4 py-2 text-sm font-medium rounded-lg border border-border hover:bg-accent transition-colors"
+          >
+            {searching ? <SpinnerIcon size={14} /> : 'Search'}
+          </button>
+        </form>
+        {searchResults !== null && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {searchResults.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 col-span-full">No skills found.</p>
+            ) : (
+              searchResults.map((skill) => (
+                <RegistrySkillCard
                   key={skill.name}
                   skill={skill}
-                  onToggle={handleToggle}
-                  onRemove={removeSkillAction ? handleRemove : null}
+                  installed={installedNames.has(skill.name) || skill._installed}
+                  onInstall={handleInstall}
                 />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Search registry */}
-        <div>
-          <h2 className="text-lg font-medium mb-3">Skill Registry</h2>
-          <form onSubmit={handleSearch} className="flex gap-2 mb-3">
-            <div className="relative flex-1">
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
-                <SearchIcon size={14} />
-              </span>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search skills..."
-                className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-foreground"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={searching}
-              className="px-4 py-2 text-sm font-medium rounded-md border border-border hover:bg-muted transition-colors"
-            >
-              {searching ? <SpinnerIcon size={14} /> : 'Search'}
-            </button>
-          </form>
-          {searchResults !== null && (
-            <div className="space-y-2">
-              {searchResults.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4">No skills found.</p>
-              ) : (
-                searchResults.map((skill) => (
-                  <RegistrySkillCard
-                    key={skill.name}
-                    skill={skill}
-                    installed={installedNames.has(skill.name) || skill._installed}
-                    onInstall={handleInstall}
-                  />
-                ))
-              )}
-            </div>
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
+    </div>
   );
 }

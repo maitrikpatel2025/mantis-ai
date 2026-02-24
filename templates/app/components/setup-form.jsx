@@ -39,7 +39,7 @@ export function SetupForm() {
   }
 
   return (
-    <Card className="w-full max-w-sm">
+    <Card className="w-full max-w-sm animate-fade-in">
       <CardHeader>
         <CardTitle>Create Admin Account</CardTitle>
         <CardDescription>Set up your first admin account to get started.</CardDescription>

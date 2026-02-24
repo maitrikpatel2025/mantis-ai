@@ -50,7 +50,7 @@ function CopyButton({ text }) {
   return (
     <button
       onClick={handleCopy}
-      className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
+      className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium border border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground shadow-xs transition-colors"
     >
       {copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
       {copied ? 'Copied' : 'Copy'}
@@ -59,18 +59,21 @@ function CopyButton({ text }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Section wrapper — reusable for each secrets section
+// Tab component
 // ─────────────────────────────────────────────────────────────────────────────
 
-function Section({ title, description, children }) {
+function Tab({ label, active, onClick }) {
   return (
-    <div className="pb-8 mb-8 border-b border-border last:border-b-0 last:pb-0 last:mb-0">
-      <h2 className="text-base font-medium mb-1">{title}</h2>
-      {description && (
-        <p className="text-sm text-muted-foreground mb-4">{description}</p>
-      )}
-      {children}
-    </div>
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+        active
+          ? 'border-emerald-500 text-foreground'
+          : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -153,15 +156,19 @@ function ApiKeySection() {
 
   return (
     <div>
+      <p className="text-xs text-muted-foreground mb-4">
+        Authenticates external requests to /api endpoints. Pass via the x-api-key header.
+      </p>
+
       {error && (
         <p className="text-sm text-destructive mb-4">{error}</p>
       )}
 
       {/* New key banner */}
       {newKey && (
-        <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-4 mb-4">
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 mb-4 animate-fade-in">
           <div className="flex items-start justify-between gap-3 mb-2">
-            <p className="text-sm font-medium text-green-600 dark:text-green-400">
+            <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
               API key created — copy it now. You won't be able to see it again.
             </p>
             <button
@@ -181,10 +188,10 @@ function ApiKeySection() {
       )}
 
       {currentKey ? (
-        <div className="rounded-lg border bg-card p-4">
+        <div className="rounded-xl border bg-card shadow-xs p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="shrink-0 rounded-md bg-muted p-2">
+              <div className="shrink-0 rounded-lg bg-emerald-500/10 p-2.5 text-emerald-600 dark:text-emerald-400">
                 <KeyIcon size={16} />
               </div>
               <div>
@@ -201,9 +208,9 @@ function ApiKeySection() {
               <button
                 onClick={handleRegenerate}
                 disabled={creating}
-                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border ${
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium border transition-colors ${
                   confirmRegenerate
-                    ? 'border-yellow-500 text-yellow-600 hover:bg-yellow-500/10'
+                    ? 'border-amber-500 text-amber-600 hover:bg-amber-500/10'
                     : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground'
                 } disabled:opacity-50`}
               >
@@ -212,7 +219,7 @@ function ApiKeySection() {
               </button>
               <button
                 onClick={handleDelete}
-                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border ${
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium border transition-colors ${
                   confirmDelete
                     ? 'border-destructive text-destructive hover:bg-destructive/10'
                     : 'border-border text-muted-foreground hover:text-destructive hover:border-destructive/50'
@@ -225,12 +232,12 @@ function ApiKeySection() {
           </div>
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed bg-card p-6 flex flex-col items-center text-center">
+        <div className="rounded-xl border border-dashed bg-card p-6 flex flex-col items-center text-center">
           <p className="text-sm text-muted-foreground mb-3">No API key configured</p>
           <button
             onClick={handleCreate}
             disabled={creating}
-            className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50 disabled:pointer-events-none"
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs disabled:opacity-50 disabled:pointer-events-none transition-colors"
           >
             {creating ? 'Creating...' : 'Create API key'}
           </button>
@@ -245,20 +252,36 @@ function ApiKeySection() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function SettingsSecretsPage() {
+  const [activeTab, setActiveTab] = useState('api-keys');
+
   return (
     <div>
-      <Section
-        title="API Key"
-        description="Authenticates external requests to /api endpoints. Pass via the x-api-key header."
-      >
-        <ApiKeySection />
-      </Section>
+      {/* Tabs */}
+      <div className="flex gap-0 border-b mb-6">
+        <Tab label="API Keys" active={activeTab === 'api-keys'} onClick={() => setActiveTab('api-keys')} />
+        <Tab label="Secrets" active={activeTab === 'secrets'} onClick={() => setActiveTab('secrets')} />
+        <Tab label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+      </div>
 
-      {/* Future sections go here, e.g.:
-      <Section title="GitHub Token" description="...">
-        <GitHubTokenSection />
-      </Section>
-      */}
+      {activeTab === 'api-keys' && (
+        <ApiKeySection />
+      )}
+
+      {activeTab === 'secrets' && (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <p className="text-sm text-muted-foreground">
+            Environment secrets are managed through your <code className="font-mono">.env</code> file and GitHub secrets.
+          </p>
+        </div>
+      )}
+
+      {activeTab === 'settings' && (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <p className="text-sm text-muted-foreground">
+            Agent settings are configured in <code className="font-mono">config/</code> files.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

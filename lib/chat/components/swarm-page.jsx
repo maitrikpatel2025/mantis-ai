@@ -47,9 +47,9 @@ function LoadingSkeleton() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const conclusionBadgeStyles = {
-  success: 'bg-green-500/10 text-green-500',
-  failure: 'bg-red-500/10 text-red-500',
-  cancelled: 'bg-yellow-500/10 text-yellow-500',
+  success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  failure: 'bg-red-500/10 text-red-600 dark:text-red-400',
+  cancelled: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   skipped: 'bg-muted text-muted-foreground',
 };
 
@@ -156,15 +156,15 @@ export function SwarmPage({ session }) {
   }, [fetchPage, page]);
 
   return (
-    <PageLayout session={session}>
+    <PageLayout session={session} title="Swarm">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Swarm</h1>
+        <div /> {/* Title in top bar */}
         {!loading && (
           <button
             onClick={() => { setRefreshing(true); fetchPage(1); }}
             disabled={refreshing}
-            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50 disabled:pointer-events-none"
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground shadow-xs disabled:opacity-50 disabled:pointer-events-none transition-colors"
           >
             {refreshing ? (
               <>

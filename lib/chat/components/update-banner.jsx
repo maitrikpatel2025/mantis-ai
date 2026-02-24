@@ -37,20 +37,20 @@ export function UpdateBanner() {
   };
 
   return (
-    <div className="bg-emerald-500 text-white px-4 py-2 text-sm flex items-center justify-between">
+    <div className="bg-emerald-600 dark:bg-emerald-700 text-white px-4 py-2.5 text-sm flex items-center justify-between">
       <div className="flex items-center gap-2">
         <ArrowUpCircleIcon size={16} />
-        <span>Update available: <strong>v{update}</strong></span>
+        <span>Update available: <strong className="font-semibold">v{update}</strong></span>
       </div>
       <div className="flex items-center gap-2">
         <button
           onClick={handleUpgrade}
           disabled={upgrading}
-          className="px-2.5 py-1 text-xs font-medium rounded bg-white/20 hover:bg-white/30 disabled:opacity-50"
+          className="px-3 py-1 text-xs font-medium rounded-md bg-white/20 hover:bg-white/30 disabled:opacity-50 transition-colors"
         >
           {upgrading ? 'Updating...' : 'Update Now'}
         </button>
-        <button onClick={handleDismiss} className="p-0.5 rounded hover:bg-white/20">
+        <button onClick={handleDismiss} className="p-1 rounded-md hover:bg-white/20 transition-colors">
           <XIcon size={14} />
         </button>
       </div>

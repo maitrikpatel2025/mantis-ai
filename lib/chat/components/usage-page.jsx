@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import { SpinnerIcon, BarChartIcon } from './icons.js';
 
 const PERIODS = [
-  { id: '24h', label: '24h' },
+  { id: '24h', label: 'Today' },
   { id: '7d', label: '7d' },
   { id: '30d', label: '30d' },
-  { id: 'all', label: 'All' },
+  { id: 'all', label: '90d' },
 ];
 
 function formatTokens(n) {
@@ -29,11 +29,18 @@ function formatDuration(ms) {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-function StatCard({ label, value, sub }) {
+const STAT_ACCENTS = [
+  'border-l-emerald-500',
+  'border-l-blue-500',
+  'border-l-orange-500',
+  'border-l-purple-500',
+];
+
+function StatCard({ label, value, sub, accentIndex = 0 }) {
   return (
-    <div className="rounded-lg border bg-card p-4">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-2xl font-semibold mt-1">{value}</p>
+    <div className={`rounded-xl border border-l-4 ${STAT_ACCENTS[accentIndex % STAT_ACCENTS.length]} bg-card p-4 shadow-xs hover:shadow-md transition-shadow`}>
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p className="text-2xl font-semibold mt-1.5 tracking-tight">{value}</p>
       {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
     </div>
   );
@@ -50,7 +57,7 @@ function BarChart({ data, label }) {
         {data.map((d, i) => (
           <div key={i} className="flex-1 flex flex-col items-center gap-1">
             <div
-              className="w-full bg-foreground/20 rounded-t transition-all"
+              className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 rounded-t transition-all"
               style={{ height: `${Math.max((d.value / max) * 100, 2)}%` }}
             />
             <span className="text-[9px] text-muted-foreground truncate max-w-full">{d.label}</span>
@@ -58,6 +65,21 @@ function BarChart({ data, label }) {
         ))}
       </div>
     </div>
+  );
+}
+
+function FilterChip({ label, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+        active
+          ? 'bg-foreground text-background'
+          : 'bg-muted text-muted-foreground hover:bg-accent'
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -88,19 +110,14 @@ export function UsagePage({ getUsageStatsAction, getUsageByModelAction, getUsage
   return (
     <>
       {/* Period selector */}
-      <div className="flex gap-1 mb-6">
+      <div className="flex gap-2 mb-6">
         {PERIODS.map((p) => (
-          <button
+          <FilterChip
             key={p.id}
+            label={p.label}
+            active={period === p.id}
             onClick={() => setPeriod(p.id)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              period === p.id
-                ? 'bg-foreground text-background'
-                : 'bg-muted text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {p.label}
-          </button>
+          />
         ))}
       </div>
 
@@ -112,18 +129,19 @@ export function UsagePage({ getUsageStatsAction, getUsageByModelAction, getUsage
         <>
           {/* Summary cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <StatCard label="Total Requests" value={stats?.totalRequests || 0} />
+            <StatCard label="Total Requests" value={stats?.totalRequests || 0} accentIndex={0} />
             <StatCard
               label="Total Tokens"
               value={formatTokens(stats?.totalTokens || 0)}
               sub={`${formatTokens(stats?.totalPromptTokens || 0)} in / ${formatTokens(stats?.totalCompletionTokens || 0)} out`}
+              accentIndex={1}
             />
-            <StatCard label="Est. Cost" value={formatCost(stats?.totalCostUsd)} />
-            <StatCard label="Avg Latency" value={formatDuration(stats?.avgDurationMs)} />
+            <StatCard label="Est. Cost" value={formatCost(stats?.totalCostUsd)} accentIndex={2} />
+            <StatCard label="Avg Latency" value={formatDuration(stats?.avgDurationMs)} accentIndex={3} />
           </div>
 
           {/* Daily bar chart */}
-          <div className="rounded-lg border bg-card p-4 mb-6">
+          <div className="rounded-xl border bg-card p-4 shadow-xs mb-6">
             <BarChart
               label="Requests per day"
               data={byDay.map((d) => ({ label: d.day?.slice(5) || '', value: Number(d.requests) }))}
@@ -132,28 +150,28 @@ export function UsagePage({ getUsageStatsAction, getUsageByModelAction, getUsage
 
           {/* Model breakdown */}
           {byModel.length > 0 && (
-            <div className="rounded-lg border bg-card overflow-hidden">
+            <div className="rounded-xl border bg-card shadow-xs overflow-hidden">
               <div className="px-4 py-3 border-b">
-                <p className="text-sm font-medium">Usage by Model</p>
+                <p className="text-sm font-semibold">Usage by Model</p>
               </div>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground text-xs">
-                    <th className="text-left px-4 py-2 font-medium">Model</th>
-                    <th className="text-left px-4 py-2 font-medium">Provider</th>
-                    <th className="text-right px-4 py-2 font-medium">Requests</th>
-                    <th className="text-right px-4 py-2 font-medium">Tokens</th>
-                    <th className="text-right px-4 py-2 font-medium">Cost</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Model</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Provider</th>
+                    <th className="text-right px-4 py-2.5 font-medium">Requests</th>
+                    <th className="text-right px-4 py-2.5 font-medium">Tokens</th>
+                    <th className="text-right px-4 py-2.5 font-medium">Cost</th>
                   </tr>
                 </thead>
                 <tbody>
                   {byModel.map((row, i) => (
-                    <tr key={i} className="border-b last:border-0">
-                      <td className="px-4 py-2 font-mono text-xs">{row.model}</td>
-                      <td className="px-4 py-2 text-muted-foreground">{row.provider}</td>
-                      <td className="px-4 py-2 text-right">{row.requests}</td>
-                      <td className="px-4 py-2 text-right">{formatTokens(Number(row.totalTokens))}</td>
-                      <td className="px-4 py-2 text-right">{formatCost(Number(row.totalCost))}</td>
+                    <tr key={i} className="border-b last:border-0 hover:bg-accent/30 transition-colors">
+                      <td className="px-4 py-2.5 font-mono text-xs">{row.model}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{row.provider}</td>
+                      <td className="px-4 py-2.5 text-right">{row.requests}</td>
+                      <td className="px-4 py-2.5 text-right">{formatTokens(Number(row.totalTokens))}</td>
+                      <td className="px-4 py-2.5 text-right">{formatCost(Number(row.totalCost))}</td>
                     </tr>
                   ))}
                 </tbody>

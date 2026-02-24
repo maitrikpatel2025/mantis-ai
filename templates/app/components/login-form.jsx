@@ -42,10 +42,10 @@ export function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-sm space-y-3">
+    <div className="w-full max-w-sm space-y-3 animate-fade-in">
       {justCreated && (
-        <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-4">
-          <p className="text-sm font-medium text-green-600 dark:text-green-400">
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+          <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
             Account created. Sign in with your new credentials.
           </p>
         </div>

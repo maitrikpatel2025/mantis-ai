@@ -5,9 +5,9 @@ import { ZapIcon, ChevronDownIcon } from './icons.js';
 import { getSwarmConfig } from '../actions.js';
 
 const typeBadgeStyles = {
-  agent: 'bg-purple-500/10 text-purple-500',
-  command: 'bg-blue-500/10 text-blue-500',
-  webhook: 'bg-orange-500/10 text-orange-500',
+  agent: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  command: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  webhook: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
 };
 
 const typeOrder = { agent: 0, command: 1, webhook: 2 };
@@ -23,15 +23,24 @@ function sortByType(items) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Group Header
+// Filter Chip
 // ─────────────────────────────────────────────────────────────────────────────
 
-function GroupHeader({ label, count }) {
+function FilterChip({ label, count, active, onClick }) {
   return (
-    <div className="flex items-center gap-2 pt-2 pb-1">
-      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
-      <span className="text-xs text-muted-foreground">({count})</span>
-    </div>
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+        active
+          ? 'bg-foreground text-background'
+          : 'bg-muted text-muted-foreground hover:bg-accent'
+      }`}
+    >
+      {label}
+      {count !== undefined && (
+        <span className={`text-[10px] ${active ? 'opacity-70' : ''}`}>{count}</span>
+      )}
+    </button>
   );
 }
 
@@ -43,10 +52,10 @@ function ActionCard({ action, index }) {
   const type = action.type || 'agent';
 
   return (
-    <div className="rounded-md border bg-background p-3">
+    <div className="rounded-lg border bg-background p-3">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs text-muted-foreground font-medium">Action {index + 1}</span>
-        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${typeBadgeStyles[type] || typeBadgeStyles.agent}`}>
+        <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Action {index + 1}</span>
+        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${typeBadgeStyles[type] || typeBadgeStyles.agent}`}>
           {type}
         </span>
       </div>
@@ -92,41 +101,47 @@ function TriggerCard({ trigger }) {
     .filter((v, i, arr) => arr.indexOf(v) === i);
 
   return (
-    <div
-      className={`rounded-lg border bg-card transition-opacity ${disabled ? 'opacity-60' : ''}`}
-    >
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-3 w-full text-left p-4 hover:bg-accent/50 rounded-lg"
-      >
-        <div className="shrink-0 rounded-md bg-muted p-2">
-          <ZapIcon size={16} />
+    <div className={`rounded-xl border bg-card shadow-xs transition-all hover:shadow-md ${disabled ? 'opacity-60' : ''}`}>
+      {/* Card header */}
+      <div className="p-4 pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="shrink-0 rounded-lg bg-amber-500/10 p-2.5 text-amber-600 dark:text-amber-400">
+              <ZapIcon size={16} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold truncate">{trigger.name}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 font-mono">{trigger.watch_path}</p>
+            </div>
+          </div>
+          <span className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full mt-1.5 ${disabled ? 'bg-stone-300 dark:bg-stone-600' : 'bg-emerald-500'}`} />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{trigger.name}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            <span className="font-mono">{trigger.watch_path}</span>
-            <span className="mx-1.5 text-border">|</span>
-            {actions.length} action{actions.length !== 1 ? 's' : ''}
-            {actionTypes.length > 0 && (
-              <span className="ml-1">({actionTypes.join(', ')})</span>
-            )}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
-              disabled ? 'bg-muted text-muted-foreground' : 'bg-green-500/10 text-green-500'
-            }`}
-          >
-            {disabled ? 'disabled' : 'enabled'}
-          </span>
-          <span className={`transition-transform ${expanded ? 'rotate-180' : ''}`}>
-            <ChevronDownIcon size={14} />
-          </span>
-        </div>
-      </button>
 
+        {/* Badges */}
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
+          {actionTypes.map((t) => (
+            <span key={t} className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${typeBadgeStyles[t] || typeBadgeStyles.agent}`}>
+              {t}
+            </span>
+          ))}
+          <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">
+            {actions.length} action{actions.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+      </div>
+
+      {/* Divider + expand */}
+      <div className="border-t px-4 py-2.5 flex items-center">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+        >
+          <ChevronDownIcon size={12} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
+          <span>Details</span>
+        </button>
+      </div>
+
+      {/* Expandable details */}
       {expanded && (
         <div className="border-t px-4 py-3 flex flex-col gap-2">
           {actions.length === 0 ? (
@@ -149,6 +164,7 @@ function TriggerCard({ trigger }) {
 export function TriggersPage() {
   const [triggers, setTriggers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     getSwarmConfig()
@@ -161,19 +177,21 @@ export function TriggersPage() {
 
   const enabled = sortByType(triggers.filter((t) => t.enabled !== false));
   const disabled = sortByType(triggers.filter((t) => t.enabled === false));
+  const filtered = filter === 'enabled' ? enabled : filter === 'disabled' ? disabled : sortByType(triggers);
 
   return (
     <>
-      {!loading && (
-        <p className="text-sm text-muted-foreground mb-4">
-          {triggers.length} trigger{triggers.length !== 1 ? 's' : ''} configured, {enabled.length} enabled
-        </p>
-      )}
+      {/* Filter chips */}
+      <div className="flex items-center gap-2 mb-5">
+        <FilterChip label="All" count={triggers.length} active={filter === 'all'} onClick={() => setFilter('all')} />
+        <FilterChip label="Enabled" count={enabled.length} active={filter === 'enabled'} onClick={() => setFilter('enabled')} />
+        <FilterChip label="Disabled" count={disabled.length} active={filter === 'disabled'} onClick={() => setFilter('disabled')} />
+      </div>
 
       {loading ? (
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-20 animate-pulse rounded-lg bg-border/50" />
+            <div key={i} className="h-40 animate-pulse rounded-xl bg-border/50" />
           ))}
         </div>
       ) : triggers.length === 0 ? (
@@ -187,23 +205,10 @@ export function TriggersPage() {
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {enabled.length > 0 && (
-            <>
-              <GroupHeader label="Enabled" count={enabled.length} />
-              {enabled.map((trigger, i) => (
-                <TriggerCard key={`enabled-${i}`} trigger={trigger} />
-              ))}
-            </>
-          )}
-          {disabled.length > 0 && (
-            <>
-              <GroupHeader label="Disabled" count={disabled.length} />
-              {disabled.map((trigger, i) => (
-                <TriggerCard key={`disabled-${i}`} trigger={trigger} />
-              ))}
-            </>
-          )}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {filtered.map((trigger, i) => (
+            <TriggerCard key={`trigger-${i}`} trigger={trigger} />
+          ))}
         </div>
       )}
     </>

@@ -43,11 +43,11 @@ export function UpgradeDialog({ open, onClose, version, updateAvailable }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/50" onClick={handleClose} />
-      <div className="relative z-50 w-full max-w-sm rounded-lg border border-border bg-background p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
+      <div className="relative z-50 w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg animate-fade-in" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Upgrade Available</h3>
-          <button onClick={handleClose} className="text-muted-foreground hover:text-foreground">
+          <h3 className="text-lg font-semibold tracking-tight">Upgrade Available</h3>
+          <button onClick={handleClose} className="text-muted-foreground hover:text-foreground transition-colors">
             <XIcon size={16} />
           </button>
         </div>
@@ -56,20 +56,20 @@ export function UpgradeDialog({ open, onClose, version, updateAvailable }) {
           <ArrowUpCircleIcon size={24} />
           <div>
             <p className="text-sm text-muted-foreground">Installed version</p>
-            <p className="text-lg font-mono font-semibold">v{version}</p>
+            <p className="text-lg font-mono font-semibold tracking-tight">v{version}</p>
           </div>
         </div>
 
-        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 mb-4">
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 mb-4">
           <p className="text-sm font-medium">
-            Version <span className="font-mono text-emerald-500">v{updateAvailable}</span> is available
+            Version <span className="font-mono text-emerald-600 dark:text-emerald-400">v{updateAvailable}</span> is available
           </p>
         </div>
 
         <button
           onClick={handleUpgrade}
           disabled={upgrading || result === 'success'}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 disabled:pointer-events-none"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs disabled:opacity-50 disabled:pointer-events-none transition-colors"
         >
           {upgrading ? (
             <>
@@ -95,7 +95,7 @@ export function UpgradeDialog({ open, onClose, version, updateAvailable }) {
           </p>
         )}
         {result === 'error' && (
-          <p className="text-xs text-red-400 mt-3">
+          <p className="text-xs text-destructive mt-3">
             Failed to trigger the upgrade workflow. Check that your GitHub token has workflow permissions.
           </p>
         )}

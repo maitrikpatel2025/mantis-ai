@@ -118,13 +118,13 @@ export function ChatsPage({ session }) {
   const grouped = groupChatsByDate(filtered);
 
   return (
-    <PageLayout session={session}>
+    <PageLayout session={session} title="Chats">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Chats</h1>
+        <div /> {/* Title now in top bar */}
         <button
           onClick={() => navigateToChat(null)}
-          className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium bg-foreground text-background hover:bg-foreground/90"
+          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs transition-colors"
         >
           <PlusIcon size={14} />
           New chat
@@ -138,7 +138,7 @@ export function ChatsPage({ session }) {
           placeholder="Search your chats..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-9 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full rounded-lg border border-input bg-transparent px-9 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring shadow-xs transition-[color,box-shadow]"
         />
         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
           <SearchIcon size={16} />
@@ -227,7 +227,7 @@ function ChatRow({ chat, onNavigate, onDelete, onStar, onRename }) {
 
   return (
     <div
-      className="relative group flex items-center gap-3 px-3 py-3 cursor-pointer hover:bg-muted/50 rounded-md"
+      className="relative group flex items-center gap-3 px-3 py-3 cursor-pointer hover:bg-accent/50 rounded-lg transition-colors"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => !editing && onNavigate(chat.id)}

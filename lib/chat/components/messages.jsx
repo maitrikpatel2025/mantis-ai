@@ -62,7 +62,7 @@ export function Messages({ messages, status, onRetry, onEdit }) {
 
       {!isAtBottom && (
         <button
-          className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full border border-border bg-background p-2 shadow-lg hover:bg-muted"
+          className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full border border-border bg-card p-2 shadow-md hover:bg-accent transition-colors"
           onClick={scrollToBottom}
           aria-label="Scroll to bottom"
         >

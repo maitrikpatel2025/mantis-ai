@@ -27,29 +27,29 @@ function LinkSafetyModal({ url, isOpen, onClose, onConfirm }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="relative mx-4 flex w-full flex-col gap-3 rounded-lg border border-border bg-background p-4 shadow-lg"
-        style={{ maxWidth: '340px' }}
+        className="relative mx-4 flex w-full flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-lg animate-fade-in"
+        style={{ maxWidth: '360px' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="font-medium text-sm text-foreground">Open external link?</div>
-        <div className="break-all rounded bg-muted px-2.5 py-2 font-mono text-xs text-foreground">
+        <div className="font-semibold text-sm text-foreground">Open external link?</div>
+        <div className="break-all rounded-lg bg-muted px-3 py-2.5 font-mono text-xs text-foreground">
           {url}
         </div>
         <div className="flex gap-2">
           <button
             onClick={handleCopy}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-accent transition-colors"
           >
             {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
             <span>{copied ? 'Copied' : 'Copy'}</span>
           </button>
           <button
             onClick={() => { onConfirm(); onClose(); }}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             <span>Open</span>
           </button>
@@ -99,10 +99,10 @@ function ToolCall({ part }) {
   const isError = state === 'output-error';
 
   return (
-    <div className="my-1 rounded-lg border border-border bg-background">
+    <div className="my-1.5 rounded-xl border border-border bg-card shadow-xs">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted/50 rounded-lg"
+        className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-accent/50 rounded-xl transition-colors"
       >
         <WrenchIcon size={14} className="text-muted-foreground shrink-0" />
         <span className="font-medium text-foreground">{displayName}</span>
@@ -136,19 +136,19 @@ function ToolCall({ part }) {
       </button>
 
       {expanded && (
-        <div className="border-t border-border px-3 py-2 text-xs">
+        <div className="border-t border-border px-3 py-3 text-xs">
           {part.input != null && (
-            <div className="mb-2">
-              <div className="font-medium text-muted-foreground mb-1">Input</div>
-              <pre className="whitespace-pre-wrap break-all rounded bg-muted p-2 text-foreground overflow-x-auto">
+            <div className="mb-3">
+              <div className="font-medium text-muted-foreground mb-1.5 uppercase tracking-wider text-[10px]">Input</div>
+              <pre className="whitespace-pre-wrap break-all rounded-lg bg-muted p-2.5 text-foreground overflow-x-auto font-mono">
                 {formatContent(part.input)}
               </pre>
             </div>
           )}
           {part.output != null && (
             <div>
-              <div className="font-medium text-muted-foreground mb-1">Output</div>
-              <pre className="whitespace-pre-wrap break-all rounded bg-muted p-2 text-foreground overflow-x-auto max-h-64 overflow-y-auto">
+              <div className="font-medium text-muted-foreground mb-1.5 uppercase tracking-wider text-[10px]">Output</div>
+              <pre className="whitespace-pre-wrap break-all rounded-lg bg-muted p-2.5 text-foreground overflow-x-auto max-h-64 overflow-y-auto font-mono">
                 {formatContent(part.output)}
               </pre>
             </div>
@@ -250,7 +250,7 @@ export function PreviewMessage({ message, isLoading, onRetry, onEdit }) {
                   handleEditCancel();
                 }
               }}
-              className="w-full resize-none rounded-xl border border-border bg-muted px-4 py-3 text-sm leading-relaxed text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full resize-none rounded-xl border border-input bg-card px-4 py-3 text-sm leading-relaxed text-foreground focus:outline-none focus:ring-[3px] focus:ring-ring/50 focus:border-ring shadow-xs"
               rows={1}
             />
             <div className="flex justify-end gap-2">
@@ -395,7 +395,7 @@ export function PreviewMessage({ message, isLoading, onRetry, onEdit }) {
 export function ThinkingMessage() {
   return (
     <div className="flex gap-4 w-full justify-start">
-      <div className="flex items-center gap-2 rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 rounded-xl bg-card border border-border/50 shadow-xs px-4 py-3 text-sm text-muted-foreground">
         <SpinnerIcon size={14} />
         <span>Thinking...</span>
       </div>

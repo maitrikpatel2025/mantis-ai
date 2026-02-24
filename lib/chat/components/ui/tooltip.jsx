@@ -26,7 +26,7 @@ export function Tooltip({ children }) {
 
   return (
     <TooltipContext.Provider value={{ open, handleOpen, handleClose }}>
-      <div className="relative inline-flex" onMouseEnter={handleOpen} onMouseLeave={handleClose}>
+      <div className="relative w-full" onMouseEnter={handleOpen} onMouseLeave={handleClose}>
         {children}
       </div>
     </TooltipContext.Provider>
@@ -47,7 +47,7 @@ export function TooltipContent({ children, className, align = 'center', side = '
   return (
     <div
       className={cn(
-        'absolute z-50 overflow-hidden rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground shadow-md',
+        'absolute z-50 overflow-hidden rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground shadow-md',
         'animate-in fade-in-0 zoom-in-95',
         side === 'bottom' && 'top-full mt-1',
         side === 'top' && 'bottom-full mb-1',
