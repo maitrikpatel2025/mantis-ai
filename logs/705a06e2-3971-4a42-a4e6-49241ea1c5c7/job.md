@@ -1,0 +1,1 @@
+DEBUG SSE: checking if events reach the browser
