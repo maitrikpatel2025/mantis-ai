@@ -1,0 +1,1 @@
+GLOBALTHIS BUS TEST: singleton fix should make this appear via SSE
