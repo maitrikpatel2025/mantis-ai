@@ -1,0 +1,1 @@
+FINAL SSE TEST: this should appear instantly via real-time events
