@@ -90,6 +90,18 @@ export async function register() {
     console.error('[mantis] Warm pool initialization failed:', err.message);
   }
 
+  // Clean up orphaned workspace container from previous runs
+  try {
+    const { isWorkspaceEnabled } = await import('../lib/execution/workspace.js');
+    if (isWorkspaceEnabled()) {
+      console.log('[mantis] step: cleanupOrphanedWorkspace');
+      const { execSync } = await import('child_process');
+      try {
+        execSync('docker rm -f mantis-workspace', { stdio: 'ignore', timeout: 15000 });
+      } catch {} // Not running, fine
+    }
+  } catch {}
+
   // Pre-compile all API routes for instant availability
   console.log('[mantis] step: precompileRoutes');
   try {
@@ -106,12 +118,16 @@ export async function register() {
     console.error('[mantis] Route pre-compilation failed:', err.message);
   }
 
-  // Graceful shutdown — stop warm containers when event handler exits
+  // Graceful shutdown — stop warm containers and workspace when event handler exits
   const shutdownHandler = async (signal) => {
     console.log(`[mantis] ${signal} received, shutting down...`);
     try {
       const { shutdownWarmPool } = await import('../lib/execution/warm-pool.js');
       await shutdownWarmPool();
+    } catch {}
+    try {
+      const { shutdownWorkspace } = await import('../lib/execution/workspace.js');
+      await shutdownWorkspace();
     } catch {}
     process.exit(0);
   };
