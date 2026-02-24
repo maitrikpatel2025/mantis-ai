@@ -66,5 +66,17 @@ export async function register() {
     if (stored) setUpdateAvailable(stored);
   } catch {}
 
+  // Clean up orphaned local Docker containers from previous runs
+  try {
+    const { isLocalExecutionEnabled } = await import('../lib/execution/router.js');
+    if (isLocalExecutionEnabled()) {
+      console.log('[mantis] step: cleanupOrphanedContainers');
+      const { cleanupOrphanedContainers } = await import('../lib/execution/local-runner.js');
+      await cleanupOrphanedContainers();
+    }
+  } catch (err) {
+    console.error('[mantis] Orphaned container cleanup failed:', err.message);
+  }
+
   console.log('mantis-ai initialized');
 }

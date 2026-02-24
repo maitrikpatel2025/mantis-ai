@@ -15,6 +15,8 @@ const TITLE_MAP = {
   '/settings/security': 'Security',
   '/settings/secrets': 'Config',
   '/settings/debug': 'Debug',
+  '/settings/jobs': 'Jobs',
+  '/settings/memory': 'Memory',
 };
 
 export function SettingsLayout({ session, title, children }) {

@@ -1,0 +1,1 @@
+ALTER TABLE `jobs` ADD `runner_type` text;

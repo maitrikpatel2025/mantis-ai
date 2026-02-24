@@ -5,7 +5,7 @@ import {
   MessageIcon, LayoutDashboardIcon, SwarmIcon, BroadcastIcon,
   UsersIcon, BarChartIcon, ClockIcon, ZapIcon, CubeIcon,
   WrenchIcon, ShieldIcon, SettingsIcon, SparklesIcon, FileTextIcon,
-  ChevronLeftIcon, BellIcon, ArrowUpCircleIcon, LifeBuoyIcon,
+  ChevronLeftIcon, BellIcon, ArrowUpCircleIcon, LifeBuoyIcon, BrainIcon,
 } from './icons.js';
 import { getUnreadNotificationCount, getAppVersion } from '../actions.js';
 import { UpgradeDialog } from './upgrade-dialog.js';
@@ -37,6 +37,7 @@ const NAV_GROUPS = [
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboardIcon, href: '/dashboard' },
       { id: 'swarm', label: 'Swarm', icon: SwarmIcon, href: '/swarm' },
+      { id: 'jobs', label: 'Jobs', icon: SwarmIcon, href: '/settings/jobs' },
       { id: 'channels', label: 'Channels', icon: BroadcastIcon, href: '/settings/channels' },
       { id: 'sessions', label: 'Sessions', icon: UsersIcon, href: '/settings/sessions' },
       { id: 'usage', label: 'Usage', icon: BarChartIcon, href: '/settings/usage' },
@@ -55,6 +56,7 @@ const NAV_GROUPS = [
       { id: 'agents', label: 'Agents', icon: CubeIcon, href: '/settings/agents' },
       { id: 'skills', label: 'Skills', icon: WrenchIcon, href: '/settings/skills' },
       { id: 'security', label: 'Security', icon: ShieldIcon, href: '/settings/security' },
+      { id: 'memory', label: 'Memory', icon: BrainIcon, href: '/settings/memory' },
     ],
   },
   {

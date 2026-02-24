@@ -35,8 +35,8 @@ jobs:
             JOB_CONTENT=$(cat "logs/${JOB_ID}/job.md")
           fi
 
-          # Fetch the GitHub Actions run log (Docker container output)
-          RUN_LOG=$(gh run view "$RUN_ID" --repo "${{ github.repository }}" --log 2>/dev/null || echo "")
+          # Fetch the GitHub Actions run log (Docker container output) — write to file to avoid arg size limits
+          gh run view "$RUN_ID" --repo "${{ github.repository }}" --log 2>/dev/null > /tmp/run_log.txt || echo "" > /tmp/run_log.txt
 
           STATUS="${{ github.event.workflow_run.conclusion }}"
 
@@ -46,7 +46,7 @@ jobs:
             --arg status "$STATUS" \
             --arg job "$JOB_CONTENT" \
             --arg run_url "$RUN_URL" \
-            --arg log "$RUN_LOG" \
+            --rawfile log /tmp/run_log.txt \
             '{
               job_id: $job_id,
               branch: $branch,

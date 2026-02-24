@@ -85,7 +85,15 @@ export function DashboardPage({ session, getDashboardDataAction }) {
             <StatCard label="Active Channels" value={data.activeChannels || 0} accentIndex={2} />
             <StatCard label="Active Crons" value={data.activeCrons || 0} accentIndex={3} />
             <StatCard label="Agents" value={data.totalAgents || 0} accentIndex={4} />
-            <StatCard label="Node.js" value={data.nodeVersion || '—'} accentIndex={5} />
+            {data.jobCounts && (
+              <StatCard
+                label="Jobs"
+                value={(data.jobCounts.created || 0) + (data.jobCounts.queued || 0) + (data.jobCounts.completed || 0) + (data.jobCounts.failed || 0)}
+                sub={`${(data.jobCounts.created || 0) + (data.jobCounts.queued || 0)} active`}
+                accentIndex={5}
+              />
+            )}
+            {!data.jobCounts && <StatCard label="Node.js" value={data.nodeVersion || '—'} accentIndex={5} />}
           </div>
 
           {/* Recent notifications */}

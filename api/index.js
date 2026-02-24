@@ -99,7 +99,7 @@ async function handleWebhook(request) {
   if (!job) return Response.json({ error: 'Missing job field' }, { status: 400 });
 
   try {
-    const result = await createJob(job);
+    const result = await createJob(job, { source: 'api' });
     return Response.json(result);
   } catch (err) {
     console.error(err);
@@ -245,6 +245,27 @@ async function handleGithubWebhook(request) {
       console.error('Failed to send channel notifications:', err);
     });
 
+    // Update job record in DB
+    try {
+      const { completeJob, failJob } = await import('../lib/db/jobs.js');
+      const isFailure = ['failure', 'cancelled', 'timed_out'].includes(payload.status);
+      if (isFailure) {
+        failJob(jobId, payload.status);
+      } else {
+        completeJob(jobId, { summary: message, result: JSON.stringify(results), prUrl: results.pr_url });
+      }
+      // Extract memories from successful jobs (fire-and-forget)
+      if (!isFailure) {
+        import('../lib/memory/index.js').then((m) => {
+          m.extractMemoriesFromJob(jobId, results).catch((err) => {
+            console.error('Memory extraction failed:', err.message);
+          });
+        });
+      }
+    } catch (err) {
+      console.error('Failed to update job record:', err.message);
+    }
+
     console.log(`Notification saved for job ${jobId.slice(0, 8)}`);
 
     return Response.json({ ok: true, notified: true });
@@ -258,6 +279,22 @@ async function handleJobStatus(request) {
   try {
     const url = new URL(request.url);
     const jobId = url.searchParams.get('job_id');
+
+    // Try DB first
+    try {
+      const { getJobById, getActiveJobs } = await import('../lib/db/jobs.js');
+      if (jobId) {
+        const job = getJobById(jobId);
+        if (job) return Response.json(job);
+      } else {
+        const active = getActiveJobs();
+        if (active.length > 0) return Response.json(active);
+      }
+    } catch {
+      // DB not available, fall through to GitHub API
+    }
+
+    // Fall back to GitHub API
     const result = await getJobStatus(jobId);
     return Response.json(result);
   } catch (err) {
