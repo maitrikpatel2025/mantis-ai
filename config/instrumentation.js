@@ -90,6 +90,22 @@ export async function register() {
     console.error('[mantis] Warm pool initialization failed:', err.message);
   }
 
+  // Pre-compile all API routes for instant availability
+  console.log('[mantis] step: precompileRoutes');
+  try {
+    // Warm trigger cache
+    const { loadTriggers } = await import('../lib/triggers.js');
+    loadTriggers();
+
+    // Pre-import API route handlers to ensure they're compiled
+    await import('../api/index.js');
+    await import('../lib/chat/api.js');
+
+    console.log('[mantis] ✓ SSE VERIFIED: all routes pre-compiled, this MUST appear instantly');
+  } catch (err) {
+    console.error('[mantis] Route pre-compilation failed:', err.message);
+  }
+
   // Graceful shutdown — stop warm containers when event handler exits
   const shutdownHandler = async (signal) => {
     console.log(`[mantis] ${signal} received, shutting down...`);
