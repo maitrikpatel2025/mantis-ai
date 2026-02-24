@@ -77,13 +77,13 @@ jobs:
           # 4. Get PR status
           PR_STATUS=$(gh pr view "$PR_NUMBER" --json state --jq '.state' --repo "${{ github.repository }}" 2>/dev/null || echo "open")
 
-          # 5. Read log file (find .jsonl in logs/{jobId}/)
-          LOG_CONTENT=""
+          # 5. Read log file (find .jsonl in logs/{jobId}/) — write to temp file to avoid arg size limits
           LOG_DIR="logs/${JOB_ID}"
+          echo -n "" > /tmp/log_content.txt
           if [ -d "$LOG_DIR" ]; then
             LOG_FILE=$(find "$LOG_DIR" -name "*.jsonl" -type f | head -1)
             if [ -n "$LOG_FILE" ]; then
-              LOG_CONTENT=$(cat "$LOG_FILE")
+              cp "$LOG_FILE" /tmp/log_content.txt
             fi
           fi
 
@@ -94,7 +94,7 @@ jobs:
             STATUS="$PR_STATUS"
           fi
 
-          # 6. Build flat JSON payload
+          # 6. Build flat JSON payload (use --rawfile for log to avoid "Argument list too long")
           jq -n \
             --arg job_id "$JOB_ID" \
             --arg branch "$BRANCH" \
@@ -104,7 +104,7 @@ jobs:
             --arg pr_url "${{ steps.pr.outputs.url }}" \
             --arg commit_message "$COMMIT_MSG" \
             --arg changed_files "$CHANGED_FILES" \
-            --arg log "$LOG_CONTENT" \
+            --rawfile log /tmp/log_content.txt \
             --arg merge_result "$MERGE_RESULT" \
             '{
               job_id: $job_id,
