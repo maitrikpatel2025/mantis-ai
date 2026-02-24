@@ -9,6 +9,7 @@ import { ConversationsPanel } from './conversations-panel.js';
 import { SidebarProvider, SidebarInset, useSidebar } from './ui/sidebar.js';
 import { ChatNavProvider } from './chat-nav-context.js';
 import { UpdateBanner } from './update-banner.js';
+import { HealthIndicator } from './page-layout.js';
 import { getChatMessages, getModelsCatalog, getUnreadNotificationCount } from '../actions.js';
 import {
   MessageIcon, BellIcon, SettingsIcon, SunIcon, MoonIcon, BugIcon, LogOutIcon,
@@ -171,10 +172,7 @@ function ChatTopBar({ user, showConversations, onToggleConversations }) {
       </div>
       <div className="flex items-center gap-3">
         {/* Health indicator */}
-        <div className="hidden sm:flex items-center gap-1.5 text-sm">
-          <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-          <span className="text-emerald-600 dark:text-emerald-400 font-medium">Health: OK</span>
-        </div>
+        <HealthIndicator />
 
         {/* Notification bell */}
         <a

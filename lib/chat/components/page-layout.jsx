@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { signOut } from 'next-auth/react';
 import { useTheme } from 'next-themes';
 import { AppSidebar } from './app-sidebar.js';
@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu.js';
-import { getUnreadNotificationCount } from '../actions.js';
+import { getUnreadNotificationCount, getHealthStatusAction } from '../actions.js';
 
 function defaultNavigateToChat(id) {
   if (id) {
@@ -25,6 +25,77 @@ function defaultNavigateToChat(id) {
   } else {
     window.location.href = '/';
   }
+}
+
+const HEALTH_COLORS = {
+  ok: { dot: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', label: 'Healthy' },
+  degraded: { dot: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400', label: 'Degraded' },
+  down: { dot: 'bg-red-500', text: 'text-red-600 dark:text-red-400', label: 'Down' },
+  unknown: { dot: 'bg-stone-400', text: 'text-muted-foreground', label: 'Checking...' },
+};
+
+const COMPONENT_LABELS = { database: 'Database', llm: 'LLM', channels: 'Channels' };
+
+export function HealthIndicator() {
+  const [health, setHealth] = useState({ overall: 'unknown', components: {} });
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    getHealthStatusAction().then(setHealth).catch(() => {});
+  }, []);
+
+  useEventStream('health:changed', useCallback((data) => {
+    if (data) setHealth(data);
+  }, []));
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const style = HEALTH_COLORS[health.overall] || HEALTH_COLORS.unknown;
+
+  return (
+    <div className="hidden sm:block relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-sm hover:opacity-80 transition-opacity"
+      >
+        <span className={`inline-block h-2 w-2 rounded-full ${style.dot} ${health.overall === 'unknown' ? 'animate-pulse' : ''}`} />
+        <span className={`${style.text} font-medium`}>{style.label}</span>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-64 rounded-xl border bg-popover p-3 shadow-lg z-50 animate-fade-in">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">System Health</p>
+          <div className="space-y-2">
+            {Object.entries(health.components).map(([key, comp]) => {
+              const compStyle = HEALTH_COLORS[comp.status] || HEALTH_COLORS.unknown;
+              return (
+                <div key={key} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-block h-1.5 w-1.5 rounded-full ${compStyle.dot}`} />
+                    <span className="font-medium">{COMPONENT_LABELS[key] || key}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    {comp.latencyMs != null && <span>{comp.latencyMs}ms</span>}
+                    {key === 'channels' && comp.total != null && (
+                      <span>{comp.enabled}/{comp.total}</span>
+                    )}
+                    <span className={compStyle.text}>{comp.status}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function TopBar({ title, user }) {
@@ -68,10 +139,7 @@ export function TopBar({ title, user }) {
       </div>
       <div className="flex items-center gap-3">
         {/* Health indicator */}
-        <div className="hidden sm:flex items-center gap-1.5 text-sm">
-          <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-          <span className="text-emerald-600 dark:text-emerald-400 font-medium">Health: OK</span>
-        </div>
+        <HealthIndicator />
 
         {/* Notification bell */}
         <a

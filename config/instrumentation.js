@@ -59,6 +59,11 @@ export async function register() {
   const { startBuiltinCrons, setUpdateAvailable } = await import('../lib/cron.js');
   startBuiltinCrons();
 
+  // Start health checks
+  console.log('[mantis] step: startHealthChecks');
+  const { startHealthChecks } = await import('../lib/health/index.js');
+  startHealthChecks();
+
   // Warm in-memory flag from DB (covers the window before the async cron fetch completes)
   try {
     const { getAvailableVersion } = await import('../lib/db/update-check.js');

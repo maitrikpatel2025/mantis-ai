@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { RefreshIcon, SpinnerIcon, BroadcastIcon } from './icons.js';
+import { useEventStream } from '../../events/use-event-stream.js';
 
 const CHANNEL_TYPE_LABELS = {
   telegram: 'Telegram',
@@ -17,8 +18,19 @@ const CHANNEL_TYPE_COLORS = {
   whatsapp: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
 };
 
-function ChannelCard({ channel }) {
+function formatTimeAgo(ts) {
+  if (!ts) return null;
+  const diff = Date.now() - ts;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return `${Math.floor(diff / 86400000)}d ago`;
+}
+
+function ChannelCard({ channel, metrics }) {
   const disabled = !channel.enabled;
+  const m = metrics || {};
+  const recentlyActive = m.lastMessageAt && (Date.now() - m.lastMessageAt) < 60000;
 
   return (
     <div className={`rounded-xl border bg-card shadow-xs transition-all hover:shadow-md ${disabled ? 'opacity-60' : ''}`}>
@@ -35,7 +47,10 @@ function ChannelCard({ channel }) {
               <p className="text-xs text-muted-foreground mt-0.5 font-mono">{channel.id}</p>
             </div>
           </div>
-          <span className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full mt-1.5 ${disabled ? 'bg-stone-300 dark:bg-stone-600' : 'bg-emerald-500'}`} />
+          <span className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full mt-1.5 ${
+            disabled ? 'bg-stone-300 dark:bg-stone-600' :
+            recentlyActive ? 'bg-emerald-500 animate-pulse' : 'bg-emerald-500'
+          }`} />
         </div>
 
         {/* Badges */}
@@ -51,18 +66,35 @@ function ChannelCard({ channel }) {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="border-t px-4 py-2.5 flex items-center justify-between">
-        <span className={`text-xs font-medium ${disabled ? 'text-muted-foreground' : 'text-emerald-600 dark:text-emerald-400'}`}>
-          {disabled ? 'Disabled' : 'Active'}
-        </span>
+      {/* Metrics + Footer */}
+      <div className="border-t px-4 py-2.5">
+        {(m.inbound > 0 || m.outbound > 0) ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-xs">
+              <span className="text-muted-foreground">
+                <span className="font-medium text-foreground">{m.inbound || 0}</span> in
+              </span>
+              <span className="text-muted-foreground">
+                <span className="font-medium text-foreground">{m.outbound || 0}</span> out
+              </span>
+            </div>
+            <span className="text-[10px] text-muted-foreground">
+              {m.lastMessageAt ? formatTimeAgo(m.lastMessageAt) : ''}
+            </span>
+          </div>
+        ) : (
+          <span className={`text-xs font-medium ${disabled ? 'text-muted-foreground' : 'text-emerald-600 dark:text-emerald-400'}`}>
+            {disabled ? 'Disabled' : 'Active'}
+          </span>
+        )}
       </div>
     </div>
   );
 }
 
-export function ChannelsPage({ session, getChannelsList }) {
+export function ChannelsPage({ session, getChannelsList, getChannelMetricsAction }) {
   const [channels, setChannels] = useState([]);
+  const [metrics, setMetrics] = useState({});
   const [loading, setLoading] = useState(true);
 
   const loadChannels = useCallback(async () => {
@@ -77,9 +109,32 @@ export function ChannelsPage({ session, getChannelsList }) {
     }
   }, [getChannelsList]);
 
+  const loadMetrics = useCallback(async () => {
+    if (!getChannelMetricsAction) return;
+    try {
+      const result = await getChannelMetricsAction();
+      setMetrics(result || {});
+    } catch {}
+  }, [getChannelMetricsAction]);
+
   useEffect(() => {
     loadChannels();
-  }, [loadChannels]);
+    loadMetrics();
+  }, [loadChannels, loadMetrics]);
+
+  // Live update metrics on channel message
+  useEventStream('channel:message', useCallback((data) => {
+    if (data?.channelId) {
+      setMetrics((prev) => ({
+        ...prev,
+        [data.channelId]: {
+          inbound: data.inbound || prev[data.channelId]?.inbound || 0,
+          outbound: data.outbound || prev[data.channelId]?.outbound || 0,
+          lastMessageAt: data.lastMessageAt || Date.now(),
+        },
+      }));
+    }
+  }, []));
 
   return (
     <div>
@@ -88,7 +143,7 @@ export function ChannelsPage({ session, getChannelsList }) {
           {!loading && `${channels.length} channel${channels.length !== 1 ? 's' : ''} configured`}
         </p>
         <button
-          onClick={loadChannels}
+          onClick={() => { loadChannels(); loadMetrics(); }}
           disabled={loading}
           className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -115,7 +170,11 @@ export function ChannelsPage({ session, getChannelsList }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {channels.map((channel) => (
-            <ChannelCard key={channel.id} channel={channel} />
+            <ChannelCard
+              key={channel.id}
+              channel={channel}
+              metrics={metrics[channel.id]}
+            />
           ))}
         </div>
       )}

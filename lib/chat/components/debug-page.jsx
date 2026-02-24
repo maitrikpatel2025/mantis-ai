@@ -1,20 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SpinnerIcon, BugIcon, CheckIcon, XIcon, ChevronDownIcon } from './icons.js';
 import { ConfirmDialog } from './ui/confirm-dialog.js';
+import { useEventStream } from '../../events/use-event-stream.js';
 
-function Tab({ label, active, onClick }) {
+function Tab({ label, active, onClick, badge }) {
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+      className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 flex items-center gap-1.5 ${
         active
           ? 'border-emerald-500 text-foreground'
           : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
       }`}
     >
       {label}
+      {badge > 0 && (
+        <span className="inline-flex items-center justify-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+          {badge}
+        </span>
+      )}
     </button>
   );
 }
@@ -76,6 +82,182 @@ function ConfigFiles({ files }) {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Event Timeline
+// ─────────────────────────────────────────────────────────────────────────────
+
+const EVENT_TYPES = [
+  'notification', 'job:created', 'job:updated', 'job:completed', 'job:failed',
+  'log', 'cron:run', 'health:changed', 'approval:created', 'approval:resolved',
+  'channel:message',
+];
+
+const EVENT_TYPE_COLORS = {
+  'notification': 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  'job:created': 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  'job:updated': 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  'job:completed': 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  'job:failed': 'bg-red-500/10 text-red-600 dark:text-red-400',
+  'log': 'bg-stone-500/10 text-stone-600 dark:text-stone-400',
+  'cron:run': 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+  'health:changed': 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  'approval:created': 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
+  'approval:resolved': 'bg-green-500/10 text-green-600 dark:text-green-400',
+  'channel:message': 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
+};
+
+const MAX_EVENTS = 200;
+
+function EventTimeline() {
+  const [events, setEvents] = useState([]);
+  const [paused, setPaused] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
+  const [filters, setFilters] = useState(new Set());
+  const [seenTypes, setSeenTypes] = useState(new Set());
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
+
+  const handleEvent = useCallback((type) => (data, fullEvent) => {
+    const entry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type,
+      data,
+      timestamp: fullEvent?.timestamp || Date.now(),
+    };
+
+    setSeenTypes((prev) => {
+      if (prev.has(type)) return prev;
+      const next = new Set(prev);
+      next.add(type);
+      return next;
+    });
+
+    if (!pausedRef.current) {
+      setEvents((prev) => [entry, ...prev].slice(0, MAX_EVENTS));
+    }
+  }, []);
+
+  // Subscribe to all event types
+  useEventStream('notification', handleEvent('notification'));
+  useEventStream('job:created', handleEvent('job:created'));
+  useEventStream('job:updated', handleEvent('job:updated'));
+  useEventStream('job:completed', handleEvent('job:completed'));
+  useEventStream('job:failed', handleEvent('job:failed'));
+  useEventStream('log', handleEvent('log'));
+  useEventStream('cron:run', handleEvent('cron:run'));
+  useEventStream('health:changed', handleEvent('health:changed'));
+  useEventStream('approval:created', handleEvent('approval:created'));
+  useEventStream('approval:resolved', handleEvent('approval:resolved'));
+  useEventStream('channel:message', handleEvent('channel:message'));
+
+  const toggleFilter = (type) => {
+    setFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  };
+
+  const filtered = filters.size === 0
+    ? events
+    : events.filter((e) => filters.has(e.type));
+
+  const formatTs = (ts) => {
+    const d = new Date(ts);
+    return d.toLocaleTimeString(undefined, { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+  };
+
+  const previewPayload = (data) => {
+    if (!data) return '';
+    const str = typeof data === 'string' ? data : JSON.stringify(data);
+    return str.length > 60 ? str.slice(0, 60) + '...' : str;
+  };
+
+  return (
+    <div>
+      {/* Controls */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          {Array.from(seenTypes).sort().map((type) => (
+            <button
+              key={type}
+              onClick={() => toggleFilter(type)}
+              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                filters.size === 0 || filters.has(type)
+                  ? EVENT_TYPE_COLORS[type] || 'bg-muted text-foreground'
+                  : 'bg-muted/50 text-muted-foreground opacity-50'
+              }`}
+            >
+              {type}
+            </button>
+          ))}
+          {seenTypes.size === 0 && (
+            <span className="text-xs text-muted-foreground">Waiting for events...</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setPaused(!paused)}
+            className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors ${
+              paused ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400' : 'hover:bg-accent/50'
+            }`}
+          >
+            {paused ? 'Resume' : 'Pause'}
+          </button>
+          <button
+            onClick={() => { setEvents([]); setSeenTypes(new Set()); setFilters(new Set()); }}
+            className="px-2.5 py-1 text-xs font-medium rounded-lg border hover:bg-accent/50 transition-colors"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+
+      {/* Timeline */}
+      <div className="rounded-xl border bg-card shadow-xs overflow-hidden">
+        {filtered.length === 0 ? (
+          <div className="py-12 text-center text-xs text-muted-foreground">
+            {events.length === 0 ? 'No events captured yet. Events will appear here in real-time.' : 'No events match the selected filters.'}
+          </div>
+        ) : (
+          <div className="max-h-[500px] overflow-y-auto divide-y divide-border">
+            {filtered.map((event) => (
+              <div key={event.id}>
+                <button
+                  onClick={() => setExpandedId(expandedId === event.id ? null : event.id)}
+                  className="flex items-center gap-3 w-full px-3 py-2 text-xs hover:bg-accent/30 transition-colors text-left"
+                >
+                  <span className="font-mono text-muted-foreground shrink-0 w-20">
+                    {formatTs(event.timestamp)}
+                  </span>
+                  <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold shrink-0 ${EVENT_TYPE_COLORS[event.type] || 'bg-muted text-foreground'}`}>
+                    {event.type}
+                  </span>
+                  <span className="text-muted-foreground truncate">
+                    {previewPayload(event.data)}
+                  </span>
+                </button>
+                {expandedId === event.id && (
+                  <div className="px-3 pb-3">
+                    <pre className="text-[11px] bg-muted rounded-lg p-3 whitespace-pre-wrap break-words font-mono overflow-auto max-h-48">
+                      {JSON.stringify(event.data, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Page
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function DebugPage({
   getDebugInfoAction,
@@ -141,7 +323,10 @@ export function DebugPage({
       <div className="flex gap-0 border-b mb-6">
         <Tab label="System" active={activeTab === 'system'} onClick={() => setActiveTab('system')} />
         <Tab label="Actions" active={activeTab === 'actions'} onClick={() => setActiveTab('actions')} />
+        <Tab label="Events" active={activeTab === 'events'} onClick={() => setActiveTab('events')} />
       </div>
+
+      {activeTab === 'events' && <EventTimeline />}
 
       {activeTab === 'actions' && (
         <>

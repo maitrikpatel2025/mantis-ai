@@ -187,6 +187,12 @@ async function handleChannelWebhook(request, routePath) {
  * @param {object} [channelConfig] - Channel config from CHANNELS.json
  */
 async function processChannelMessage(adapter, normalized, channelId, channelConfig) {
+  // Record inbound message metric
+  try {
+    const { recordChannelMessage } = await import('../lib/channels/metrics.js');
+    recordChannelMessage(channelId, 'inbound');
+  } catch {}
+
   await adapter.acknowledge(normalized.metadata);
   const stopIndicator = adapter.startProcessingIndicator(normalized.metadata);
 
@@ -199,6 +205,12 @@ async function processChannelMessage(adapter, normalized, channelId, channelConf
       : await chat(normalized.threadId, normalized.text, normalized.attachments, chatOptions);
 
     await adapter.sendResponse(normalized.threadId, response, normalized.metadata);
+
+    // Record outbound message metric
+    try {
+      const { recordChannelMessage } = await import('../lib/channels/metrics.js');
+      recordChannelMessage(channelId, 'outbound');
+    } catch {}
   } catch (err) {
     console.error('Failed to process message with AI:', err);
     await adapter

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ClockIcon, SpinnerIcon, ChevronDownIcon, PlusIcon, PencilIcon, TrashIcon } from './icons.js';
-import { getSwarmConfig, createCron, updateCron, deleteCron, toggleCronEnabled } from '../actions.js';
+import { useState, useEffect, useCallback } from 'react';
+import { ClockIcon, SpinnerIcon, ChevronDownIcon, PlusIcon, PencilIcon, TrashIcon, CheckIcon, XIcon } from './icons.js';
+import { getSwarmConfig, createCron, updateCron, deleteCron, toggleCronEnabled, getCronRunsAction, getCronRunStatsAction } from '../actions.js';
 import { Modal } from './ui/modal.js';
 import { ConfirmDialog } from './ui/confirm-dialog.js';
+import { useEventStream } from '../../events/use-event-stream.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utilities
@@ -47,6 +48,22 @@ function describeCron(schedule) {
   }
 
   return schedule;
+}
+
+function formatDuration(ms) {
+  if (ms == null) return '—';
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${(ms / 60000).toFixed(1)}m`;
+}
+
+function formatTimeAgo(ts) {
+  if (!ts) return 'never';
+  const diff = Date.now() - ts;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return `${Math.floor(diff / 86400000)}d ago`;
 }
 
 const typeBadgeStyles = {
@@ -228,13 +245,65 @@ function FilterChip({ label, count, active, onClick }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Cron Run History
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CronRunHistory({ cronName }) {
+  const [runs, setRuns] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getCronRunsAction(cronName, 10)
+      .then(setRuns)
+      .catch(() => setRuns([]))
+      .finally(() => setLoading(false));
+  }, [cronName]);
+
+  // Live updates
+  useEventStream('cron:run', useCallback((data) => {
+    if (data?.cronName === cronName) {
+      setRuns((prev) => prev ? [data, ...prev].slice(0, 10) : [data]);
+    }
+  }, [cronName]));
+
+  if (loading) return <div className="py-2 text-xs text-muted-foreground">Loading history...</div>;
+  if (!runs || runs.length === 0) return <div className="py-2 text-xs text-muted-foreground">No runs recorded yet</div>;
+
+  return (
+    <div className="space-y-1">
+      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Recent Runs</p>
+      {runs.map((run) => (
+        <div key={run.id} className="flex items-center gap-2 text-xs py-1">
+          <span className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${run.status === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+          <span className="text-muted-foreground font-mono shrink-0">
+            {new Date(run.startedAt).toLocaleTimeString()}
+          </span>
+          <span className="text-muted-foreground shrink-0">{formatDuration(run.durationMs)}</span>
+          {run.error && (
+            <span className="text-red-500 truncate" title={run.error}>{run.error}</span>
+          )}
+          {run.status === 'success' && run.output && (
+            <span className="text-muted-foreground truncate" title={run.output}>{run.output}</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Cron Card
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CronCard({ cron, index, onEdit, onDelete, onToggle }) {
+function CronCard({ cron, index, stats, onEdit, onDelete, onToggle }) {
   const [expanded, setExpanded] = useState(false);
   const type = cron.type || 'agent';
   const disabled = cron.enabled === false;
+  const cronStats = stats?.[cron.name];
+
+  const successRate = cronStats && cronStats.total > 0
+    ? Math.round((cronStats.success / cronStats.total) * 100)
+    : null;
 
   return (
     <div className={`rounded-xl border bg-card shadow-xs transition-all hover:shadow-md ${disabled ? 'opacity-60' : ''}`}>
@@ -260,11 +329,30 @@ function CronCard({ cron, index, onEdit, onDelete, onToggle }) {
           </button>
         </div>
 
-        {/* Type badge */}
-        <div className="mt-3 flex items-center gap-2">
+        {/* Type badge + stats */}
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
           <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${typeBadgeStyles[type] || typeBadgeStyles.agent}`}>
             {type}
           </span>
+          {successRate !== null && (
+            <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold ${
+              successRate >= 90 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
+              successRate >= 50 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' :
+              'bg-red-500/10 text-red-600 dark:text-red-400'
+            }`}>
+              {successRate}% success
+            </span>
+          )}
+          {cronStats?.lastRunAt && (
+            <span className="text-[10px] text-muted-foreground">
+              {formatTimeAgo(cronStats.lastRunAt)}
+            </span>
+          )}
+          {cronStats?.avgDurationMs != null && (
+            <span className="text-[10px] text-muted-foreground">
+              avg {formatDuration(Math.round(cronStats.avgDurationMs))}
+            </span>
+          )}
         </div>
       </div>
 
@@ -287,7 +375,7 @@ function CronCard({ cron, index, onEdit, onDelete, onToggle }) {
 
       {/* Expandable details */}
       {expanded && (
-        <div className="border-t px-4 py-3">
+        <div className="border-t px-4 py-3 space-y-3">
           {type === 'agent' && cron.job && (
             <div>
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Job prompt</p>
@@ -310,6 +398,7 @@ function CronCard({ cron, index, onEdit, onDelete, onToggle }) {
               </div>
             </div>
           )}
+          <CronRunHistory cronName={cron.name} />
         </div>
       )}
     </div>
@@ -327,6 +416,7 @@ export function CronsPage() {
   const [editIndex, setEditIndex] = useState(null);
   const [deleteIndex, setDeleteIndex] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [stats, setStats] = useState({});
 
   const reload = () => {
     getSwarmConfig()
@@ -337,7 +427,25 @@ export function CronsPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { reload(); }, []);
+  const loadStats = () => {
+    getCronRunStatsAction()
+      .then((data) => {
+        const map = {};
+        for (const s of data) map[s.cronName] = s;
+        setStats(map);
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    reload();
+    loadStats();
+  }, []);
+
+  // Live update stats on cron run
+  useEventStream('cron:run', useCallback(() => {
+    loadStats();
+  }, []));
 
   const handleCreate = async (data) => {
     const result = await createCron(data);
@@ -410,6 +518,7 @@ export function CronsPage() {
               key={`cron-${getOriginalIndex(cron)}`}
               cron={cron}
               index={getOriginalIndex(cron)}
+              stats={stats}
               onEdit={(idx) => { setEditIndex(idx); setFormOpen(true); }}
               onDelete={(idx) => setDeleteIndex(idx)}
               onToggle={handleToggle}
