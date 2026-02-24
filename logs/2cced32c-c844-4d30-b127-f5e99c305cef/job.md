@@ -1,0 +1,1 @@
+Navigate to the Instagram reel at https://www.instagram.com/reels/DTTE7H2imEH/ using browser automation. Extract the video content and transcribe any spoken audio or text overlays. Save the transcription as a text file at `transcriptions/instagram-reel-DTTE7H2imEH.txt`. Include any relevant visual context or text that appears in the video.
