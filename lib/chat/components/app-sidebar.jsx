@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   MessageIcon, LayoutDashboardIcon, SwarmIcon, BroadcastIcon,
   UsersIcon, BarChartIcon, ClockIcon, ZapIcon, CubeIcon,
   WrenchIcon, ShieldIcon, SettingsIcon, SparklesIcon, FileTextIcon,
   ChevronLeftIcon, BellIcon, ArrowUpCircleIcon, LifeBuoyIcon, BrainIcon,
 } from './icons.js';
+import { useEventStream } from '../../events/use-event-stream.js';
 import { getUnreadNotificationCount, getAppVersion } from '../actions.js';
 import { UpgradeDialog } from './upgrade-dialog.js';
 import {
@@ -105,6 +106,11 @@ export function AppSidebar({ user }) {
       })
       .catch(() => {});
   }, []);
+
+  // SSE: increment badge on new notification
+  useEventStream('notification', useCallback(() => {
+    setUnreadCount((prev) => prev + 1);
+  }, []));
 
   const handleNav = (href) => {
     if (href === '/') {

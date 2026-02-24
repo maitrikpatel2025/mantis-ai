@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { signOut } from 'next-auth/react';
 import { useTheme } from 'next-themes';
 import { AppSidebar } from './app-sidebar.js';
 import { SidebarProvider, SidebarInset, useSidebar } from './ui/sidebar.js';
 import { ChatNavProvider } from './chat-nav-context.js';
 import { UpdateBanner } from './update-banner.js';
+import { ToastContainer } from './toast-container.js';
 import { BellIcon, SettingsIcon, SunIcon, MoonIcon, BugIcon, LogOutIcon } from './icons.js';
+import { useEventStream } from '../../events/use-event-stream.js';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +39,11 @@ export function TopBar({ title, user }) {
       .then((count) => setUnreadCount(count))
       .catch(() => {});
   }, []);
+
+  // SSE: increment badge on new notification
+  useEventStream('notification', useCallback(() => {
+    setUnreadCount((prev) => prev + 1);
+  }, []));
 
   const initials = user?.email
     ? user.email.slice(0, 2).toUpperCase()
@@ -132,6 +139,7 @@ export function PageLayout({ session, title, children }) {
             {children}
           </div>
         </SidebarInset>
+        <ToastContainer />
       </SidebarProvider>
     </ChatNavProvider>
   );

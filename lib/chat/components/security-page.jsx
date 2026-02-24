@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SpinnerIcon, ShieldIcon, CheckIcon, XIcon } from './icons.js';
+import { useEventStream } from '../../events/use-event-stream.js';
 
 const POLICY_COLORS = {
   allow: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
@@ -53,11 +54,11 @@ export function SecurityPage({
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    fetchAll();
-    const interval = setInterval(fetchAll, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  useEffect(() => { fetchAll(); }, []);
+
+  // SSE: refetch on approval events
+  useEventStream('approval:created', useCallback(() => fetchAll(), []));
+  useEventStream('approval:resolved', useCallback(() => fetchAll(), []));
 
   const handleAddPolicy = async () => {
     if (!newTool) return;

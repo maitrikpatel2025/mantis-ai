@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SpinnerIcon, UsersIcon } from './icons.js';
+import { useEventStream } from '../../events/use-event-stream.js';
 
 function timeAgo(ts) {
   if (!ts) return '';
@@ -36,11 +37,11 @@ export function SessionsPage({ getActiveSessionsAction }) {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    fetchSessions();
-    const interval = setInterval(fetchSessions, 15000);
-    return () => clearInterval(interval);
-  }, []);
+  useEffect(() => { fetchSessions(); }, []);
+
+  // SSE: refetch on activity events
+  useEventStream('job:created', useCallback(() => fetchSessions(), []));
+  useEventStream('notification', useCallback(() => fetchSessions(), []));
 
   return (
     <>

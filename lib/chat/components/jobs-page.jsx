@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SpinnerIcon, RefreshIcon, ChevronDownIcon, SearchIcon, ServerIcon, CloudIcon, ZapIcon, XIcon, RotateCcwIcon } from './icons.js';
 import { getJobs, getJob, getJobDashboardCounts, cancelJobAction, retryJobAction } from '../actions.js';
+import { useEventStream } from '../../events/use-event-stream.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utilities
@@ -302,11 +303,17 @@ export function JobsPage({ session }) {
 
   useEffect(() => { fetchData(1, filter); }, [fetchData, filter]);
 
-  // Auto-refresh every 15s
-  useEffect(() => {
-    const interval = setInterval(() => fetchData(page, filter), 15000);
-    return () => clearInterval(interval);
+  // SSE: refetch on job events (debounced)
+  const refetchTimer = useRef(null);
+  const handleJobEvent = useCallback(() => {
+    clearTimeout(refetchTimer.current);
+    refetchTimer.current = setTimeout(() => fetchData(page, filter), 500);
   }, [fetchData, page, filter]);
+
+  useEventStream('job:created', handleJobEvent);
+  useEventStream('job:updated', handleJobEvent);
+  useEventStream('job:completed', handleJobEvent);
+  useEventStream('job:failed', handleJobEvent);
 
   const handleFilterChange = (status) => {
     setFilter(status);

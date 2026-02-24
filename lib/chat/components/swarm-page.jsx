@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PageLayout } from './page-layout.js';
 import { SpinnerIcon, RefreshIcon } from './icons.js';
 import { getSwarmStatus } from '../actions.js';
+import { useEventStream } from '../../events/use-event-stream.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utilities
@@ -149,11 +150,17 @@ export function SwarmPage({ session }) {
   // Initial load
   useEffect(() => { fetchPage(1); }, [fetchPage]);
 
-  // Auto-refresh current page every 10s
-  useEffect(() => {
-    const interval = setInterval(() => fetchPage(page), 10000);
-    return () => clearInterval(interval);
+  // SSE: refetch on job events (debounced)
+  const refetchTimer = useRef(null);
+  const handleJobEvent = useCallback(() => {
+    clearTimeout(refetchTimer.current);
+    refetchTimer.current = setTimeout(() => fetchPage(page), 500);
   }, [fetchPage, page]);
+
+  useEventStream('job:created', handleJobEvent);
+  useEventStream('job:updated', handleJobEvent);
+  useEventStream('job:completed', handleJobEvent);
+  useEventStream('job:failed', handleJobEvent);
 
   return (
     <PageLayout session={session} title="Swarm">

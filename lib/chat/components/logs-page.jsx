@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { SpinnerIcon, FileTextIcon, TrashIcon, CopyIcon, RefreshIcon } from './icons.js';
+import { useEventStream } from '../../events/use-event-stream.js';
 
 const LEVELS = [
   { id: 'all', label: 'All' },
@@ -55,15 +56,17 @@ export function LogsPage({ getLogsAction, clearLogsAction }) {
       .catch(() => setLoading(false));
   };
 
-  useEffect(() => {
-    fetchLogs();
-  }, [level, source]);
+  useEffect(() => { fetchLogs(); }, [level, source]);
 
-  useEffect(() => {
+  // SSE: append new log entries in real-time
+  useEventStream('log', useCallback((data) => {
     if (!autoRefresh) return;
-    const interval = setInterval(fetchLogs, 5000);
-    return () => clearInterval(interval);
-  }, [autoRefresh, level, source]);
+    // Apply client-side level filter
+    if (level !== 'all' && data.level !== level) return;
+    // Apply client-side text filter
+    if (source && !data.message?.toLowerCase().includes(source.toLowerCase())) return;
+    setLogs((prev) => [...prev, data]);
+  }, [autoRefresh, level, source]));
 
   useEffect(() => {
     if (scrollRef.current) {

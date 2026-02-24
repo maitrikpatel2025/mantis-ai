@@ -13,6 +13,7 @@
     "./instrumentation": "./config/instrumentation.js",
     "./auth": "./lib/auth/index.js",
     "./auth/actions": "./lib/auth/actions.js",
+    "./events/sse": "./lib/events/sse.js",
     "./chat/api": "./lib/chat/api.js",
     "./db": "./lib/db/index.js",
     "./chat": "./lib/chat/components/index.js",
