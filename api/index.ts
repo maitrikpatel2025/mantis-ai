@@ -282,7 +282,7 @@ async function processChannelMessage(
           queue.enqueue(normalized.threadId, fullText, async (text) => {
             try {
               const metadata = { ...normalized.metadata, _streamMessageId: streamMessageId ? Number(streamMessageId) : undefined };
-              const result = await adapter.sendStreamChunk(normalized.threadId, '', text, metadata);
+              const result = await adapter.sendStreamChunk!(normalized.threadId, '', text, metadata);
               if (result && !streamMessageId) {
                 streamMessageId = result as string;
               }
@@ -298,7 +298,7 @@ async function processChannelMessage(
 
       // Send final message
       const finalMetadata = { ...normalized.metadata, _streamMessageId: streamMessageId ? Number(streamMessageId) : undefined };
-      await adapter.sendStreamEnd(normalized.threadId, fullText, finalMetadata);
+      await adapter.sendStreamEnd!(normalized.threadId, fullText, finalMetadata);
     } else {
       // Non-streaming path
       const response: string = agentName
