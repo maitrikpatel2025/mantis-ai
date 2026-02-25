@@ -1,0 +1,525 @@
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { SpinnerIcon, BugIcon, CheckIcon, XIcon, ChevronDownIcon } from './icons.js';
+import { ConfirmDialog } from './ui/confirm-dialog.js';
+import { useEventStream } from '../../events/use-event-stream.js';
+
+// -------------------------------------------------------------------------
+// Types
+// -------------------------------------------------------------------------
+
+interface DebugInfo {
+  env?: Record<string, string>;
+  configFiles?: Record<string, boolean>;
+  channels?: Array<{ id: string; type: string; enabled: boolean }>;
+  tools?: string[];
+  agents?: string[];
+  db?: {
+    sizeBytes?: number;
+    rowCounts?: Record<string, number | null>;
+  };
+  recentErrors?: Array<{ message: string }>;
+}
+
+interface LlmTestResult {
+  success: boolean;
+  latencyMs?: number;
+  response?: string;
+  error?: string;
+}
+
+interface TimelineEvent {
+  id: string;
+  type: string;
+  data: any;
+  timestamp: number;
+}
+
+// -------------------------------------------------------------------------
+// Sub-components
+// -------------------------------------------------------------------------
+
+interface TabProps {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  badge?: number;
+}
+
+function Tab({ label, active, onClick, badge }: TabProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 flex items-center gap-1.5 ${
+        active
+          ? 'border-emerald-500 text-foreground'
+          : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+      }`}
+    >
+      {label}
+      {badge !== undefined && badge > 0 && (
+        <span className="inline-flex items-center justify-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
+interface AccordionProps {
+  title: string;
+  defaultOpen?: boolean;
+  badge?: number;
+  children: React.ReactNode;
+}
+
+function Accordion({ title, defaultOpen = false, badge, children }: AccordionProps) {
+  const [open, setOpen] = useState<boolean>(defaultOpen);
+  return (
+    <div className="rounded-xl border bg-card shadow-xs">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium hover:bg-accent/30 rounded-xl transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <span>{title}</span>
+          {badge !== undefined && (
+            <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">
+              {badge}
+            </span>
+          )}
+        </div>
+        <span className={`transition-transform ${open ? 'rotate-180' : ''}`}>
+          <ChevronDownIcon size={14} />
+        </span>
+      </button>
+      {open && <div className="border-t px-4 py-3">{children}</div>}
+    </div>
+  );
+}
+
+interface EnvTableProps {
+  env?: Record<string, string>;
+}
+
+function EnvTable({ env }: EnvTableProps) {
+  if (!env) return null;
+  return (
+    <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-xs">
+      {Object.entries(env).map(([key, val]) => (
+        <div key={key} className="contents">
+          <span className="font-mono text-muted-foreground">{key}</span>
+          <span className={val ? 'text-foreground font-mono' : 'text-muted-foreground italic'}>
+            {val || 'not set'}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+interface ConfigFilesProps {
+  files?: Record<string, boolean>;
+}
+
+function ConfigFiles({ files }: ConfigFilesProps) {
+  if (!files) return null;
+  return (
+    <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-xs">
+      {Object.entries(files).map(([name, exists]) => (
+        <div key={name} className="contents">
+          <span className="font-mono">{name}</span>
+          <span className={`inline-flex items-center gap-1 ${exists ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+            <span className={`inline-block h-1.5 w-1.5 rounded-full ${exists ? 'bg-emerald-500' : 'bg-red-500'}`} />
+            {exists ? 'found' : 'missing'}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// -------------------------------------------------------------------------
+// Event Timeline
+// -------------------------------------------------------------------------
+
+const EVENT_TYPES = [
+  'notification', 'job:created', 'job:updated', 'job:completed', 'job:failed',
+  'log', 'cron:run', 'health:changed', 'approval:created', 'approval:resolved',
+  'channel:message',
+];
+
+const EVENT_TYPE_COLORS: Record<string, string> = {
+  'notification': 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  'job:created': 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  'job:updated': 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  'job:completed': 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  'job:failed': 'bg-red-500/10 text-red-600 dark:text-red-400',
+  'log': 'bg-stone-500/10 text-stone-600 dark:text-stone-400',
+  'cron:run': 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+  'health:changed': 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  'approval:created': 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
+  'approval:resolved': 'bg-green-500/10 text-green-600 dark:text-green-400',
+  'channel:message': 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
+};
+
+const MAX_EVENTS = 200;
+
+function EventTimeline() {
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [paused, setPaused] = useState<boolean>(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<Set<string>>(new Set());
+  const [seenTypes, setSeenTypes] = useState<Set<string>>(new Set());
+  const pausedRef = useRef<boolean>(paused);
+  pausedRef.current = paused;
+
+  const handleEvent = useCallback((type: string) => (data: any, fullEvent?: { timestamp?: number }) => {
+    const entry: TimelineEvent = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type,
+      data,
+      timestamp: fullEvent?.timestamp || Date.now(),
+    };
+
+    setSeenTypes((prev) => {
+      if (prev.has(type)) return prev;
+      const next = new Set(prev);
+      next.add(type);
+      return next;
+    });
+
+    if (!pausedRef.current) {
+      setEvents((prev) => [entry, ...prev].slice(0, MAX_EVENTS));
+    }
+  }, []);
+
+  // Subscribe to all event types
+  useEventStream('notification', handleEvent('notification'));
+  useEventStream('job:created', handleEvent('job:created'));
+  useEventStream('job:updated', handleEvent('job:updated'));
+  useEventStream('job:completed', handleEvent('job:completed'));
+  useEventStream('job:failed', handleEvent('job:failed'));
+  useEventStream('log', handleEvent('log'));
+  useEventStream('cron:run', handleEvent('cron:run'));
+  useEventStream('health:changed', handleEvent('health:changed'));
+  useEventStream('approval:created', handleEvent('approval:created'));
+  useEventStream('approval:resolved', handleEvent('approval:resolved'));
+  useEventStream('channel:message', handleEvent('channel:message'));
+
+  const toggleFilter = (type: string) => {
+    setFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  };
+
+  const filtered = filters.size === 0
+    ? events
+    : events.filter((e) => filters.has(e.type));
+
+  const formatTs = (ts: number): string => {
+    const d = new Date(ts);
+    return d.toLocaleTimeString(undefined, { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+  };
+
+  const previewPayload = (data: any): string => {
+    if (!data) return '';
+    const str = typeof data === 'string' ? data : JSON.stringify(data);
+    return str.length > 60 ? str.slice(0, 60) + '...' : str;
+  };
+
+  return (
+    <div>
+      {/* Controls */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          {Array.from(seenTypes).sort().map((type) => (
+            <button
+              key={type}
+              onClick={() => toggleFilter(type)}
+              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                filters.size === 0 || filters.has(type)
+                  ? EVENT_TYPE_COLORS[type] || 'bg-muted text-foreground'
+                  : 'bg-muted/50 text-muted-foreground opacity-50'
+              }`}
+            >
+              {type}
+            </button>
+          ))}
+          {seenTypes.size === 0 && (
+            <span className="text-xs text-muted-foreground">Waiting for events...</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setPaused(!paused)}
+            className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors ${
+              paused ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400' : 'hover:bg-accent/50'
+            }`}
+          >
+            {paused ? 'Resume' : 'Pause'}
+          </button>
+          <button
+            onClick={() => { setEvents([]); setSeenTypes(new Set()); setFilters(new Set()); }}
+            className="px-2.5 py-1 text-xs font-medium rounded-lg border hover:bg-accent/50 transition-colors"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+
+      {/* Timeline */}
+      <div className="rounded-xl border bg-card shadow-xs overflow-hidden">
+        {filtered.length === 0 ? (
+          <div className="py-12 text-center text-xs text-muted-foreground">
+            {events.length === 0 ? 'No events captured yet. Events will appear here in real-time.' : 'No events match the selected filters.'}
+          </div>
+        ) : (
+          <div className="max-h-[500px] overflow-y-auto divide-y divide-border">
+            {filtered.map((event) => (
+              <div key={event.id}>
+                <button
+                  onClick={() => setExpandedId(expandedId === event.id ? null : event.id)}
+                  className="flex items-center gap-3 w-full px-3 py-2 text-xs hover:bg-accent/30 transition-colors text-left"
+                >
+                  <span className="font-mono text-muted-foreground shrink-0 w-20">
+                    {formatTs(event.timestamp)}
+                  </span>
+                  <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold shrink-0 ${EVENT_TYPE_COLORS[event.type] || 'bg-muted text-foreground'}`}>
+                    {event.type}
+                  </span>
+                  <span className="text-muted-foreground truncate">
+                    {previewPayload(event.data)}
+                  </span>
+                </button>
+                {expandedId === event.id && (
+                  <div className="px-3 pb-3">
+                    <pre className="text-[11px] bg-muted rounded-lg p-3 whitespace-pre-wrap break-words font-mono overflow-auto max-h-48">
+                      {JSON.stringify(event.data, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// -------------------------------------------------------------------------
+// Main Page
+// -------------------------------------------------------------------------
+
+interface DebugPageProps {
+  getDebugInfoAction: () => Promise<DebugInfo>;
+  testLlmConnectionAction: () => Promise<LlmTestResult>;
+  resetAgentCacheAction: () => Promise<void>;
+  clearCheckpointsAction: () => Promise<void>;
+}
+
+export function DebugPage({
+  getDebugInfoAction,
+  testLlmConnectionAction,
+  resetAgentCacheAction,
+  clearCheckpointsAction,
+}: DebugPageProps) {
+  const [info, setInfo] = useState<DebugInfo | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [testResult, setTestResult] = useState<LlmTestResult | null>(null);
+  const [testing, setTesting] = useState<boolean>(false);
+  const [clearConfirm, setClearConfirm] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>('system');
+
+  useEffect(() => {
+    getDebugInfoAction()
+      .then((data) => setInfo(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleTestLlm = async () => {
+    setTesting(true);
+    setTestResult(null);
+    const result = await testLlmConnectionAction();
+    setTestResult(result);
+    setTesting(false);
+  };
+
+  const handleResetCache = async () => {
+    await resetAgentCacheAction();
+    const data = await getDebugInfoAction();
+    setInfo(data);
+  };
+
+  const handleClearCheckpoints = async () => {
+    setClearConfirm(false);
+    await clearCheckpointsAction();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <SpinnerIcon size={20} />
+      </div>
+    );
+  }
+
+  if (!info) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="rounded-full bg-muted p-4 mb-4">
+          <BugIcon size={24} />
+        </div>
+        <p className="text-sm font-medium">Could not load debug info</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Tabs */}
+      <div className="flex gap-0 border-b mb-6">
+        <Tab label="System" active={activeTab === 'system'} onClick={() => setActiveTab('system')} />
+        <Tab label="Actions" active={activeTab === 'actions'} onClick={() => setActiveTab('actions')} />
+        <Tab label="Events" active={activeTab === 'events'} onClick={() => setActiveTab('events')} />
+      </div>
+
+      {activeTab === 'events' && <EventTimeline />}
+
+      {activeTab === 'actions' && (
+        <>
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            <button
+              onClick={handleTestLlm}
+              disabled={testing}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border hover:bg-accent/50 disabled:opacity-50 transition-colors"
+            >
+              {testing ? 'Testing...' : 'Test LLM Connection'}
+            </button>
+            <button
+              onClick={handleResetCache}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border hover:bg-accent/50 transition-colors"
+            >
+              Reset Agent Cache
+            </button>
+            <button
+              onClick={() => setClearConfirm(true)}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-destructive/20 text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              Clear Checkpoints
+            </button>
+          </div>
+
+          {/* LLM test result */}
+          {testResult && (
+            <div className={`rounded-xl border p-3 mb-4 text-xs animate-fade-in ${testResult.success ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
+              <div className="flex items-center gap-2">
+                {testResult.success ? <CheckIcon size={14} className="text-emerald-500" /> : <XIcon size={14} className="text-red-500" />}
+                <span className="font-medium">{testResult.success ? 'Connection successful' : 'Connection failed'}</span>
+              </div>
+              {testResult.success && (
+                <p className="mt-1 text-muted-foreground">
+                  Latency: {testResult.latencyMs}ms | Response: &quot;{testResult.response}&quot;
+                </p>
+              )}
+              {testResult.error && (
+                <p className="mt-1 text-red-500">{testResult.error}</p>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab === 'system' && (
+        <div className="flex flex-col gap-3">
+          <Accordion title="Environment Variables" defaultOpen>
+            <EnvTable env={info.env} />
+          </Accordion>
+
+          <Accordion title="Config Files">
+            <ConfigFiles files={info.configFiles} />
+          </Accordion>
+
+          <Accordion title="Channels" badge={info.channels?.length || 0}>
+            {info.channels && info.channels.length > 0 ? (
+              <div className="text-xs space-y-1.5">
+                {info.channels.map((c, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="font-mono">{c.id}</span>
+                    <span className="text-muted-foreground">{c.type}</span>
+                    <span className={`inline-flex items-center gap-1 ${c.enabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                      <span className={`inline-block h-1.5 w-1.5 rounded-full ${c.enabled ? 'bg-emerald-500' : 'bg-stone-400'}`} />
+                      {c.enabled ? 'enabled' : 'disabled'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="text-xs text-muted-foreground">No channels registered</p>}
+          </Accordion>
+
+          <Accordion title="Tools" badge={info.tools?.length || 0}>
+            {info.tools && info.tools.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {info.tools.map((t) => (
+                  <span key={t} className="inline-flex px-2 py-0.5 rounded-md bg-muted text-xs font-mono">{t}</span>
+                ))}
+              </div>
+            ) : <p className="text-xs text-muted-foreground">No tools loaded</p>}
+          </Accordion>
+
+          <Accordion title="Agents" badge={info.agents?.length || 0}>
+            {info.agents && info.agents.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {info.agents.map((a) => (
+                  <span key={a} className="inline-flex px-2 py-0.5 rounded-md bg-muted text-xs font-mono">{a}</span>
+                ))}
+              </div>
+            ) : <p className="text-xs text-muted-foreground">No sub-agents configured</p>}
+          </Accordion>
+
+          <Accordion title="Database">
+            <div className="text-xs space-y-2">
+              <p>Size: <span className="font-mono">{info.db?.sizeBytes ? `${(info.db.sizeBytes / 1024).toFixed(1)} KB` : '\u2014'}</span></p>
+              {info.db?.rowCounts && (
+                <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1">
+                  {Object.entries(info.db.rowCounts).map(([table, count]) => (
+                    <div key={table} className="contents">
+                      <span className="font-mono text-muted-foreground">{table}</span>
+                      <span>{count !== null ? `${count} rows` : 'N/A'}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Accordion>
+
+          <Accordion title="Recent Errors" badge={info.recentErrors?.length || 0}>
+            {info.recentErrors && info.recentErrors.length > 0 ? (
+              <div className="space-y-1 text-xs font-mono max-h-48 overflow-auto">
+                {info.recentErrors.map((e, i) => (
+                  <div key={i} className="text-red-500 break-all whitespace-pre-wrap">{e.message}</div>
+                ))}
+              </div>
+            ) : <p className="text-xs text-muted-foreground">No recent errors</p>}
+          </Accordion>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={clearConfirm}
+        onConfirm={handleClearCheckpoints}
+        onCancel={() => setClearConfirm(false)}
+        title="Clear all checkpoints?"
+        description="This will delete all LangGraph conversation checkpoints. Agent memory will be lost. This cannot be undone."
+        confirmLabel="Clear"
+      />
+    </>
+  );
+}

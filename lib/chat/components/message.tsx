@@ -1,0 +1,428 @@
+'use client';
+
+import { useState, useRef, useEffect, useCallback } from 'react';
+import type { UIMessage } from 'ai';
+import { Streamdown } from 'streamdown';
+import { cn } from '../utils.js';
+import { SpinnerIcon, FileTextIcon, CopyIcon, CheckIcon, RefreshIcon, SquarePenIcon, WrenchIcon, XIcon, ChevronDownIcon } from './icons.js';
+
+interface LinkSafetyModalProps {
+  url: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+function LinkSafetyModal({ url, isOpen, onClose, onConfirm }: LinkSafetyModalProps) {
+  const [copied, setCopied] = useState<boolean>(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  }, [url]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative mx-4 flex w-full flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-lg animate-fade-in"
+        style={{ maxWidth: '360px' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="font-semibold text-sm text-foreground">Open external link?</div>
+        <div className="break-all rounded-lg bg-muted px-3 py-2.5 font-mono text-xs text-foreground">
+          {url}
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleCopy}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+          >
+            {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
+            <span>{copied ? 'Copied' : 'Copy'}</span>
+          </button>
+          <button
+            onClick={() => { onConfirm(); onClose(); }}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <span>Open</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export const linkSafety = {
+  enabled: true,
+  renderModal: (props: LinkSafetyModalProps) => <LinkSafetyModal {...props} />,
+};
+
+const TOOL_DISPLAY_NAMES: Record<string, string> = {
+  create_job: 'Create Job',
+  get_job_status: 'Check Job Status',
+  get_system_technical_specs: 'Read System Docs',
+};
+
+function getToolDisplayName(toolName: string): string {
+  return TOOL_DISPLAY_NAMES[toolName] || toolName.replace(/_/g, ' ');
+}
+
+function formatContent(content: any): string | null {
+  if (content == null) return null;
+  if (typeof content === 'string') {
+    try {
+      const parsed = JSON.parse(content);
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      return content;
+    }
+  }
+  return JSON.stringify(content, null, 2);
+}
+
+interface ToolCallPart {
+  toolName?: string;
+  toolCallId?: string;
+  type?: string;
+  state?: string;
+  input?: any;
+  output?: any;
+}
+
+function ToolCall({ part }: { part: ToolCallPart }) {
+  const [expanded, setExpanded] = useState<boolean>(false);
+
+  const toolName = part.toolName || (part.type?.startsWith('tool-') ? part.type.slice(5) : 'tool');
+  const displayName = getToolDisplayName(toolName);
+  const state = part.state || 'input-available';
+
+  const isRunning = state === 'input-streaming' || state === 'input-available';
+  const isDone = state === 'output-available';
+  const isError = state === 'output-error';
+
+  return (
+    <div className="my-1.5 rounded-xl border border-border bg-card shadow-xs">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-accent/50 rounded-xl transition-colors"
+      >
+        <WrenchIcon size={14} className="text-muted-foreground shrink-0" />
+        <span className="font-medium text-foreground">{displayName}</span>
+        <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+          {isRunning && (
+            <>
+              <SpinnerIcon size={12} />
+              <span>Running...</span>
+            </>
+          )}
+          {isDone && (
+            <>
+              <CheckIcon size={12} className="text-green-500" />
+              <span>Done</span>
+            </>
+          )}
+          {isError && (
+            <>
+              <XIcon size={12} className="text-red-500" />
+              <span>Error</span>
+            </>
+          )}
+        </span>
+        <ChevronDownIcon
+          size={14}
+          className={cn(
+            'text-muted-foreground transition-transform shrink-0',
+            expanded && 'rotate-180'
+          )}
+        />
+      </button>
+
+      {expanded && (
+        <div className="border-t border-border px-3 py-3 text-xs">
+          {part.input != null && (
+            <div className="mb-3">
+              <div className="font-medium text-muted-foreground mb-1.5 uppercase tracking-wider text-[10px]">Input</div>
+              <pre className="whitespace-pre-wrap break-all rounded-lg bg-muted p-2.5 text-foreground overflow-x-auto font-mono">
+                {formatContent(part.input)}
+              </pre>
+            </div>
+          )}
+          {part.output != null && (
+            <div>
+              <div className="font-medium text-muted-foreground mb-1.5 uppercase tracking-wider text-[10px]">Output</div>
+              <pre className="whitespace-pre-wrap break-all rounded-lg bg-muted p-2.5 text-foreground overflow-x-auto max-h-64 overflow-y-auto font-mono">
+                {formatContent(part.output)}
+              </pre>
+            </div>
+          )}
+          {part.input == null && part.output == null && (
+            <div className="text-muted-foreground italic">Waiting for data...</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface PreviewMessageProps {
+  message: UIMessage;
+  isLoading: boolean;
+  onRetry?: (message: UIMessage) => void;
+  onEdit?: (message: UIMessage, newText: string) => void;
+}
+
+export function PreviewMessage({ message, isLoading, onRetry, onEdit }: PreviewMessageProps) {
+  const isUser = message.role === 'user';
+  const [copied, setCopied] = useState<boolean>(false);
+  const [editing, setEditing] = useState<boolean>(false);
+  const [editText, setEditText] = useState<string>('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Extract text from parts (AI SDK v5+) or fall back to content
+  const text =
+    message.parts
+      ?.filter((p: any) => p.type === 'text')
+      .map((p: any) => p.text)
+      .join('\n') ||
+    (message as any).content ||
+    '';
+
+  // Extract file parts
+  const fileParts = message.parts?.filter((p: any) => p.type === 'file') || [];
+  const imageParts = fileParts.filter((p: any) => p.mediaType?.startsWith('image/'));
+  const otherFileParts = fileParts.filter((p: any) => !p.mediaType?.startsWith('image/'));
+  const hasToolParts = message.parts?.some((p: any) => p.type?.startsWith('tool-')) || false;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
+
+  const handleEditStart = () => {
+    setEditText(text);
+    setEditing(true);
+  };
+
+  const handleEditCancel = () => {
+    setEditing(false);
+    setEditText('');
+  };
+
+  const handleEditSubmit = () => {
+    const trimmed = editText.trim();
+    if (trimmed && trimmed !== text) {
+      onEdit?.(message, trimmed);
+    }
+    setEditing(false);
+    setEditText('');
+  };
+
+  // Auto-resize and focus textarea when entering edit mode
+  useEffect(() => {
+    if (editing && textareaRef.current) {
+      const ta = textareaRef.current;
+      ta.focus();
+      ta.style.height = 'auto';
+      ta.style.height = `${ta.scrollHeight}px`;
+      // Move cursor to end
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    }
+  }, [editing]);
+
+  return (
+    <div
+      className={cn(
+        'group flex gap-4 w-full',
+        isUser ? 'justify-end' : 'justify-start'
+      )}
+    >
+      <div className="flex flex-col max-w-[80%]">
+        {editing ? (
+          <div className="flex flex-col gap-2">
+            <textarea
+              ref={textareaRef}
+              value={editText}
+              onChange={(e) => {
+                setEditText(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = `${e.target.scrollHeight}px`;
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleEditSubmit();
+                }
+                if (e.key === 'Escape') {
+                  handleEditCancel();
+                }
+              }}
+              className="w-full resize-none rounded-xl border border-input bg-card px-4 py-3 text-sm leading-relaxed text-foreground focus:outline-none focus:ring-[3px] focus:ring-ring/50 focus:border-ring shadow-xs"
+              rows={1}
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={handleEditCancel}
+                className="rounded-md px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditSubmit}
+                className="rounded-md bg-primary px-3 py-1 text-xs text-primary-foreground hover:opacity-80"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div
+              className={cn(
+                'rounded-xl px-4 py-3 text-sm leading-relaxed',
+                isUser
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-foreground'
+              )}
+            >
+              {isUser ? (
+                <>
+                  {imageParts.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      {imageParts.map((part: any, i: number) => (
+                        <img
+                          key={i}
+                          src={part.url}
+                          alt="attachment"
+                          className="max-h-64 max-w-full rounded-lg object-contain"
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {otherFileParts.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      {otherFileParts.map((part: any, i: number) => (
+                        <div
+                          key={i}
+                          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs bg-primary-foreground/20"
+                        >
+                          <FileTextIcon size={12} />
+                          <span className="max-w-[150px] truncate">
+                            {part.name || part.mediaType || 'file'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {text ? (
+                    <div className="whitespace-pre-wrap break-words">{text}</div>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  {message.parts?.length > 0 ? (
+                    message.parts.map((part: any, i: number) => {
+                      if (part.type === 'text') {
+                        return <Streamdown key={i} mode={isLoading ? 'streaming' : 'static'} linkSafety={linkSafety}>{part.text}</Streamdown>;
+                      }
+                      if (part.type === 'file') {
+                        if (part.mediaType?.startsWith('image/')) {
+                          return (
+                            <div key={i} className="mb-2">
+                              <img src={part.url} alt="attachment" className="max-h-64 max-w-full rounded-lg object-contain" />
+                            </div>
+                          );
+                        }
+                        return (
+                          <div key={i} className="mb-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs bg-foreground/10">
+                            <FileTextIcon size={12} />
+                            <span className="max-w-[150px] truncate">{part.name || part.mediaType || 'file'}</span>
+                          </div>
+                        );
+                      }
+                      if (part.type?.startsWith('tool-')) {
+                        return <ToolCall key={part.toolCallId || i} part={part} />;
+                      }
+                      return null;
+                    })
+                  ) : text ? (
+                    <Streamdown mode={isLoading ? 'streaming' : 'static'} linkSafety={linkSafety}>{text}</Streamdown>
+                  ) : isLoading && !hasToolParts ? (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <SpinnerIcon size={14} />
+                      <span>Working...</span>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+
+            {/* Action toolbar */}
+            {!isLoading && text && (
+              <div
+                className={cn(
+                  'flex gap-1 mt-1 opacity-0 transition-opacity group-hover:opacity-100',
+                  isUser ? 'justify-end' : 'justify-start'
+                )}
+              >
+                <button
+                  onClick={handleCopy}
+                  className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  aria-label="Copy message"
+                >
+                  {copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
+                </button>
+                {onRetry && (
+                  <button
+                    onClick={() => onRetry(message)}
+                    className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted"
+                    aria-label="Retry"
+                  >
+                    <RefreshIcon size={14} />
+                  </button>
+                )}
+                {isUser && onEdit && (
+                  <button
+                    onClick={handleEditStart}
+                    className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted"
+                    aria-label="Edit message"
+                  >
+                    <SquarePenIcon size={14} />
+                  </button>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function ThinkingMessage() {
+  return (
+    <div className="flex gap-4 w-full justify-start">
+      <div className="flex items-center gap-2 rounded-xl bg-card border border-border/50 shadow-xs px-4 py-3 text-sm text-muted-foreground">
+        <SpinnerIcon size={14} />
+        <span>Thinking...</span>
+      </div>
+    </div>
+  );
+}

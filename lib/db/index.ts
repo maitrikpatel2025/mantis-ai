@@ -1,0 +1,50 @@
+import fs from 'fs';
+import path from 'path';
+import Database from 'better-sqlite3';
+import { drizzle, BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import { mantisDb, dataDir, PROJECT_ROOT } from '../paths.js';
+import * as schema from './schema.js';
+
+let _db: BetterSQLite3Database<typeof schema> | null = null;
+
+/**
+ * Get or create the Drizzle database instance (lazy singleton).
+ */
+export function getDb(): BetterSQLite3Database<typeof schema> {
+  if (!_db) {
+    // Ensure data directory exists
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    const sqlite = new Database(mantisDb);
+    sqlite.pragma('journal_mode = WAL');
+    _db = drizzle(sqlite, { schema });
+  }
+  return _db;
+}
+
+/**
+ * Initialize the database — apply pending migrations.
+ * Called from instrumentation.js at server startup.
+ * Uses Drizzle Kit migrations from the package's drizzle/ folder.
+ */
+export function initDatabase(): void {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+
+  const sqlite = new Database(mantisDb);
+  sqlite.pragma('journal_mode = WAL');
+  const db = drizzle(sqlite, { schema });
+
+  // Resolve migrations folder from the installed package.
+  const migrationsFolder = path.join(PROJECT_ROOT, 'node_modules', 'mantis-ai', 'drizzle');
+
+  migrate(db, { migrationsFolder });
+
+  sqlite.close();
+
+  // Force re-creation of drizzle instance on next getDb() call
+  _db = null;
+}
